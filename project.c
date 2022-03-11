@@ -117,11 +117,9 @@ int main(int argc, char *argv[])
             if (i != (ceil(rand) - 1)) {
                 IOBurst = next_exp(lambda, upper_bound);
                 printf("I/O burst time is  %d\n", (int)ceil(IOBurst) * 10);
-
-
             }
         }
-        
+
 
 
     }
