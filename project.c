@@ -5,7 +5,7 @@
  * the time taken to run all processes using each algorithm. It
  * will display the time taken at the end of the program. The 4
  * algorithms to be used are FCFS, SJF, SRT, and RR.
- * 
+ *
  * The program will take 7 arguments:
  *   -num of processes to create, assigning PIDs alphabetically
  *   -seed for random generation, the random generation will
@@ -15,14 +15,14 @@
  *   -context switch time in milliseconds
  *   -alpha, a constant used in estimating CPU burst times
  *   -slice time, the time of each round in RR
- * 
+ *
  * Ties in arrival to the CPU will be handled in this order:
  *   -CPU Burst completion
  *   -I/O Burst completion
  *   -New process arrival
  * If there is a tie within these categories, it will be decided
  * by PID
- * 
+ *
  * Each algorithm should track (and display):
  *   -the number of preemptions
  *   -the number of context-switches
@@ -41,20 +41,28 @@
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <math.h>
+#include <time.h>
+#include <ctype.h>
 
-int generateRandom(double lambda, long upper_bound)
+double next_exp(double lambda, long upper_bound)
 {
-    /* Generates rand 0.00 to 1.00. Averages it using log and lambda. Makes sure to not exceed upper bound. */
-    int rand = drand48();
-    double avg_rand = -log(rand) / lambda;
-    for (int i = 0; i < 1; i++ )
+    /* Generates rand 0.00 to 1.00
+     * Averages the random value using log and lambda
+     * Makes sure to not exceed upper bound
+     */
+    double rand, avg_rand;
+    for (int i = 0; i < 1; i++)
+    {
+        rand = drand48();
+        avg_rand = -log(rand) / lambda;
         if (avg_rand > upper_bound)
             i--;
+    }
     return avg_rand;
 }
 
-
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
     if (argc != 8)
     {
@@ -70,8 +78,8 @@ int main(int argc, char * argv[])
         }
     }
 
-    int num_processes, t_cs, alpha, t_slice;
-    double lambda;
+    int num_processes, t_cs, t_slice;
+    double alpha, lambda;
     char *ptr;
     long seed, upper_bound;
 
@@ -80,41 +88,43 @@ int main(int argc, char * argv[])
     lambda = atof(argv[3]);
     upper_bound = strtoul(argv[4], &ptr, 10);
     t_cs = atoi(argv[5]);
-    alpha = atoi(argv[6]);
+    alpha = atof(argv[6]);
     t_slice = atoi(argv[7]);
+
+    // test print
+    printf("7 arguments are:\n");
+    printf("num processes: %d\nseed: %ld\nlambda: %lf\nupper bound: %ld\n", num_processes, seed, lambda, upper_bound);
+    printf("context switch time: %d\nalpha: %lf\nslice time: %d\n", t_cs, alpha, t_slice);
 
     /* Loops through each algorithm:
      * 1 = FCFS, 2 = SJF, 3 = SRT, 4 = RR
      */
-    for( int i = 0; i < 4; i++ )
+    for (int i = 0; i < 1; i++)
     {
         // initialize the seed for each algorithm, we want the same set of processes
         srand48(seed);
+
+
+        // generates the first process --> needs to be looped to create multiple processes
+        double rand = next_exp(lambda, upper_bound);
+        printf("arrival time is %d\n", (int)floor(rand));
+        rand = drand48() * 100;
+        printf("number of CPU bursts is %d\n", (int)ceil(rand));
+        double CPUBurst, IOBurst;
+        for (int i = 0; i < ceil(rand); i++) {
+            CPUBurst = next_exp(lambda, upper_bound);
+            printf("CPU burst time is  %d\n", (int)ceil(CPUBurst));
+            if (i != (ceil(rand) - 1)) {
+                IOBurst = next_exp(lambda, upper_bound);
+                printf("I/O burst time is  %d\n", (int)ceil(IOBurst) * 10);
+
+
+            }
+        }
         
 
 
-
-    /* notes for self:
-     * ask james about structure of program, how exactly is it working?
-     * ie: how to make a process? There seems to be like 20 parts...
-     * Do we need an array for each process with a set of burst times for both I/O and CPU?
-     *   I don't need to know how to do it, I just don't really get what I need to do
-     */
-
-
-
-
-
-
-
-
-
-
-
-
     }
-
-
 
     return EXIT_SUCCESS;
 }
