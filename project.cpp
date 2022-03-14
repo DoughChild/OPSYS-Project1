@@ -40,16 +40,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <math.h>
 #include <time.h>
 #include <ctype.h>
 #include <iostream>
 
 #include "process.h"
+#include "SRT.h"
 
 using namespace std;
 
@@ -74,15 +71,20 @@ char getAlpha(int i)
 {
     /* uses the iterator of process creation to assign it a character name */
     string alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    i = i % 26;
+    if (i >= 26)
+    {
+        fprintf(stderr, "ERROR: Process limit is 26\n");
+        return EXIT_FAILURE;
+    }
     return alpha[i];
 }
 
 void gen_process_info(double lambda, long upper_bound, process * p)
 {
     /* generates burst amount and burst lengths for a given process */
+    p->tau = (int)ceil(1 / lambda);
     double t_arrival = next_exp(lambda, upper_bound);
-    printf("arrival time is %d\n", (int)floor(t_arrival));
+    p->t_arrival = (int)floor(t_arrival);
     double num_bursts = drand48() * 100;
     p->num_bursts = (int)ceil(num_bursts);
     double CPUBurst, IOBurst;
@@ -98,12 +100,6 @@ void gen_process_info(double lambda, long upper_bound, process * p)
     }
 }
 
-int calc_tau(double prev_tau, double actual, double alpha)
-{
-    /* recalculate tau based on previous tau, alpha, and actual time */
-    double new_tau = alpha * actual + (1.0 - alpha) * prev_tau;
-    return new_tau;
-}
 
 
 
@@ -146,44 +142,43 @@ int main(int argc, char *argv[])
      */
     for (int i = 0; i < 1; i++)
     {
-        double tau = 100;
-
         // initialize the seed for each algorithm, we want the same set of processes
         srand48(seed);
 
         // makes array with pointers to each process, starting uninitialized
         process *processes[num_processes];
 
-        // generates the first process --> needs to be looped to create multiple processes
+        /* generates all processes */
         for (int j = 0; j < num_processes; j++)
         {
+            /* creates new process, assigns it a unique name, generates process info */
             process *p = new process();
             processes[j] = p;
             p->name = getAlpha(j);
             gen_process_info(lambda, upper_bound, p);
-            
-
-            // test the process.h object
-            // cout << "Process name is " << p.name << endl;
-            // cout << "there are " << p.num_bursts << " bursts\n";
-            // printf("CPU Bursts are:");
-            // for (auto i = p.CPUBursts.begin(); i < p.CPUBursts.end(); i++)
-            // {
-            //     cout << " " << *i;
-            // }
-            // printf("\n");
-            // printf("I/O Bursts are:");
-            // for (auto i = p.IOBursts.begin(); i < p.IOBursts.end(); i++)
-            // {
-            //     cout << " " << *i;
-            // }
-            // printf("\n");
         }
+
         cout << "Process name is " << processes[0]->name << endl;
         cout << "there are " << processes[0]->num_bursts << " CPU bursts\n";
         cout << "Process name is " << processes[1]->name << endl;
         cout << "there are " << processes[1]->num_bursts << " CPU bursts\n";
         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
     return EXIT_SUCCESS;
