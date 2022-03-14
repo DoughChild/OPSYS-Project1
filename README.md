@@ -11,3 +11,6 @@ Robin (RR). It also takes into account differing values such as lambda and
 alpha which are used in random number generation for the dummy processes,
 and the calculations that estimate CPU Burst times for preemption-based
 algorithms such as SRT and RR.
+
+Authors
+Iffat Nafisa, Keegan Dant, Nate Zink
