@@ -26,6 +26,16 @@ struct CompareProcess {
 };
 
 
+struct CompareName {
+    // compares process names. This is for ties within ready queue, for example
+    bool operator()(Process *p1, Process *p2) {
+        cout << p1->name << endl;
+        cout << p2->name << endl;
+        return p1->name < p2->name;
+    }
+};
+
+
 /* If current CPU Burst length is 0, and it is by default, 
  * we will update it with the actual current burst.
  * Else, it is re-entering the CPU from preemption and the
@@ -42,7 +52,7 @@ void update_cur_CPUBurst(Process *process)
  */
 void remove_process(deque<Process*> processes, char name)
 {
-    for (int i = 0; i < processes.size(); i++) {
+    for (unsigned long i = 0; i < processes.size(); i++) {
         if (processes[i]->name == name)
             processes.erase(processes.begin()+i);
     }
@@ -87,7 +97,7 @@ void SRT(deque<Process*> processes, double tau, int t_cs, double alpha)
             // adds time to current process
             cur_process->turnaround_time++;
             // checks if process exiting CPU to see if / when it will exit
-            for (int i = 0; i < rq_q.size(); i++)
+            for (unsigned long i = 0; i < rq_q.size(); i++)
             {
                 switching_process = rq_q[i];
                 if (switching_process->cs_time_left == 0) {
@@ -147,9 +157,11 @@ void SRT(deque<Process*> processes, double tau, int t_cs, double alpha)
             }
 
         /* Waiting on I/O Operations */
-        for (int i = 0; i < IO_q.size(); i++)
+        for (unsigned long i = 0; i < IO_q.size(); i++)
         {
             // may cause trouble when there are no objects in waiting queue
+            priority_queue<Process, vector<Process*>, CompareName> CPU_q;
+            bool move_to_cpu = false;
             if (IO_q[i]->IOBursts[0] == 0)
             {
                 waiting_process = IO_q[i];
@@ -172,9 +184,11 @@ void SRT(deque<Process*> processes, double tau, int t_cs, double alpha)
         }
 
         /* Ready Queue Operations */
-        for (int i = 0; i < processes.size(); i++)
+        for (unsigned long i = 0; i < processes.size(); i++)
         {
             // checks every process to see if its arrived at this tick
+            priority_queue<Process, vector<Process*>, CompareName> CPU_q;
+            bool move_to_cpu = false;
             if (processes[i]->t_arrival == time_cur)
             {
                 arriving_process = processes[i];
@@ -182,16 +196,29 @@ void SRT(deque<Process*> processes, double tau, int t_cs, double alpha)
                 // maybe make secondary priority queue...
                 if (cur_process == NULL)
                 {
-                    cur_process = arriving_process;
-                    cs_time = t_cs / 2;
-                    cs_time--;
-                    cs_count++;
+                    CPU_q.push(arriving_process);
+                    move_to_cpu = true;
+                    // cur_process = arriving_process;
+                    // cs_time = t_cs / 2;
+                    // cs_time--;
+                    // cs_count++;
                 } else {
                     ready_q.push(arriving_process);
                 }
             }
+            if (!CPU_q.empty() && (move_to_cpu == true))
+            {
+                cur_process = CPU_q.top();
+                CPU_q.pop();
+                cs_time = t_cs / 2;
+                cs_time--;
+                cs_count++;
+                move_to_cpu = false;
+            }
+
             /* check if first process can preempt by comparing remaining tau for each process
-             * preemption should also only occur when there is no context switch occuring */
+             * preemption should also only occur when there is no context switch occuring
+             * If the estimate (tau) of the current process was too short, we won't ever preempt */
             if ( (ready_q.top()->tau_remaining < cur_process->tau_remaining) && cs_time == 0)
             {
                 /* moves current process out to wait for its context
@@ -213,13 +240,3 @@ void SRT(deque<Process*> processes, double tau, int t_cs, double alpha)
     }
 
 }
-
-
-
-/* NOTES
- * have keegan tell me about tau -->
- * does tau go negative?
- * does tau stay at 0?
- * will a tau of 0 or a negative number ever be preempted?
- * 
- */
