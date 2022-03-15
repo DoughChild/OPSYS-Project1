@@ -102,7 +102,7 @@ void gen_process_info(double lambda, long upper_bound, Process * p)
     p->wait_time = 0;
     p->turnaround_time = 0;
     p->cur_CPUBurst = 0;
-    //p->in_rq = false;
+    p->in_rq = false;
 }
 
 
@@ -135,6 +135,7 @@ int main(int argc, char *argv[])
     t_cs = atoi(argv[5]);
     alpha = atof(argv[6]);
     t_slice = atoi(argv[7]);
+    double tau = 1 / lambda;
 
     // test print
     printf("7 arguments are:\n");
@@ -167,8 +168,9 @@ int main(int argc, char *argv[])
         cout << "Process name is " << processes[1]->name << endl;
         cout << "there are " << processes[1]->num_bursts << " CPU bursts\n";
         
-
-
+        cout << "about to run SRT\n";
+        SRT(processes, tau, t_cs, alpha);
+        cout << "SRT ran, holy crap!\n";
 
 
 

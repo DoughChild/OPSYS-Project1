@@ -9,9 +9,11 @@
 #include "Process.h"
 #include "tau_calc.h"
 
-struct CompareProcess {
+struct CompareProcess
+{
     // had Process const &p1... before
-    bool operator()(Process *p1, Process *p2) {
+    bool operator()(Process *p1, Process *p2)
+    {
         /* this will compare the int cpu burst time of each process
          * it will be true if p1 has less time remaining
          * may change bool return to int to give more options for tie-breaking
@@ -25,18 +27,7 @@ struct CompareProcess {
     }
 };
 
-
-struct CompareName {
-    // compares process names. This is for ties within ready queue, for example
-    bool operator()(Process *p1, Process *p2) {
-        cout << p1->name << endl;
-        cout << p2->name << endl;
-        return p1->name < p2->name;
-    }
-};
-
-
-/* If current CPU Burst length is 0, and it is by default, 
+/* If current CPU Burst length is 0, and it is by default,
  * we will update it with the actual current burst.
  * Else, it is re-entering the CPU from preemption and the
  * value should not be updated
@@ -50,48 +41,41 @@ void update_cur_CPUBurst(Process *process)
 /* Removes a process from the list of processes using their name
  * This is to keep a track of processes that have yet to terminate
  */
-void remove_process(deque<Process*> processes, char name)
+void remove_process(deque<Process *> processes, char name)
 {
-    for (unsigned long i = 0; i < processes.size(); i++) {
+    for (unsigned long i = 0; i < processes.size(); i++)
+    {
         if (processes[i]->name == name)
-            processes.erase(processes.begin()+i);
+            processes.erase(processes.begin() + i);
     }
 }
 
-
-
-void SRT(deque<Process*> processes, double tau, int t_cs, double alpha)
+void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
 {
     /* before popping values from processes in the list, measure
      * CPU utilization from unaltered list. This will prevent us
      * from having to use additional variables etc */
 
-
-
     /* CPU process, current running process */
-    Process * cur_process = NULL;
-    /* Temp process to hold I/O processes */
-    Process * waiting_process = NULL;
-    /* Temp process to hold arriving processes */
-    Process * arriving_process = NULL;
-    /* Temp process to hold processes who were preempted, and are mid context switch */
-    Process * switching_process = NULL;
+    Process *cur_process = NULL;
     /* list of I/O Waiting processes */
-    deque<Process*> IO_q;
+    deque<Process *> IO_q;
     /* list of processes switching out of CPU into the ready queue after a preemption */
-    deque<Process*> rq_q;
+    deque<Process *> rq_q;
     /* priority queue of processes in ready queue */
-    priority_queue<Process, vector<Process*>, CompareProcess> ready_q;
+    priority_queue<Process, vector<Process *>, CompareProcess> ready_q;
 
     int cs_time = 0, cs_count = 0, time_cur = 0;
 
     bool simulating = true;
+    cout << "about to begin simulation\n";
     while (simulating)
     {
         /* CPU Operations */
         // if we are context switching
         if (cs_time != 0)
         {
+            cout << "context switching!\n";
             // decrement context switch count before we can use CPU again
             cs_time--;
             // adds time to current process
@@ -99,144 +83,127 @@ void SRT(deque<Process*> processes, double tau, int t_cs, double alpha)
             // checks if process exiting CPU to see if / when it will exit
             for (unsigned long i = 0; i < rq_q.size(); i++)
             {
-                switching_process = rq_q[i];
-                if (switching_process->cs_time_left == 0) {
+                Process * switching_process = rq_q[i];
+                if (switching_process->cs_time_left == 0)
+                {
                     ready_q.push(switching_process);
+                    switching_process->in_rq = true;
                 } else {
                     switching_process->cs_time_left--;
                     switching_process->turnaround_time++;
                 }
             }
-        } else {
-            // check if this is necessary. Do we need to cover this within CPU? The ready queue should do this...
-            if (cur_process == NULL)
+        }
+        else if (processes.size() == 0)
+        {
+            cout << "simulation is about to end\n";
+            simulating = false;
+        }
+        // ensures the CPU is not empty
+        else if (cur_process != NULL)
+        {
+            // If the current process is ending its burst, begin its exit from the CPU
+            if (cur_process->CPUBursts.front() == 0)
             {
-                if (!ready_q.empty())
+                cout << "process is switching out of CPU naturally\n";
+                cs_time = t_cs / 2;
+                // remove burst time of 0, this makes next CPU burst the first in the queue
+                cur_process->CPUBursts.pop_front();
+                cs_count++;
+                // recalculate and reset tau
+                cur_process->tau = calc_tau(cur_process->tau, cur_process->cur_CPUBurst, alpha);
+                cur_process->tau_remaining = cur_process->tau;
+                // check if the process is heading to I/O, otherwise process is ending
+                if (cur_process->IOBursts.size() > 0)
                 {
-                    cs_time = t_cs / 2;
-                    cur_process = ready_q.top();
-                    ready_q.pop();
-                    update_cur_CPUBurst(cur_process);
-                    cs_time--;
-                    cur_process->turnaround_time++;
-                    cs_count++;
+                    IO_q.push_back(cur_process);
+                    cur_process->IOBursts[0] += (t_cs / 2);
                 } else {
-                    // what is the behavior here
-                    continue;
+                    remove_process(processes, cur_process->name);   
                 }
+                cs_time--;
+                cur_process->cur_CPUBurst = 0;
+                cur_process = NULL;
             } else {
-                // If the current process is ending its burst, begin its exit from the CPU
-                if (cur_process->CPUBursts.front() == 0)
-                {
-                    cs_time = t_cs / 2;
-                    cur_process->CPUBursts.pop_front();
-                    cs_count++;
-                    cur_process->tau = calc_tau(cur_process->tau, cur_process->cur_CPUBurst, alpha);
-                    cur_process->tau_remaining = cur_process->tau;
-                    if (cur_process->IOBursts.size() != 0)
-                    {
-                        IO_q.push_back(cur_process);
-                        cur_process->IOBursts[0] += (t_cs / 2);
-                    } else {
-                        remove_process(processes, cur_process->name);
-                        if (processes.size() == 0)
-                            simulating = false;
-                        else {
-                            // some behavior?
-                            continue;
-                        }
-                        cs_time--;
-                    }
-                    cur_process->cur_CPUBurst = 0;
-                    cur_process = NULL;
-                } else {
-                    cur_process->CPUBursts[0]--;
-                    cur_process->tau_remaining--;
-                    cur_process->turnaround_time++;
-                }
+                cur_process->CPUBursts[0]--;
+                cur_process->tau_remaining--;
+                cur_process->turnaround_time++;
             }
+        }
+
 
         /* Waiting on I/O Operations */
         for (unsigned long i = 0; i < IO_q.size(); i++)
         {
-            // may cause trouble when there are no objects in waiting queue
-            priority_queue<Process, vector<Process*>, CompareName> CPU_q;
-            bool move_to_cpu = false;
-            if (IO_q[i]->IOBursts[0] == 0)
+            Process * waiting_process = IO_q[i];
+            if (waiting_process->IOBursts[0] == 0)
             {
-                waiting_process = IO_q[i];
-                IO_q.pop_front();
-                // this should be tie-broken, may result it wrong process being inserted
-                // maybe make secondary priority queue...
-                if (cur_process == NULL)
-                {
-                    cur_process = waiting_process;
-                    cs_time = t_cs / 2;
-                    cs_time--;
-                    cs_count++;
-                } else {
-                    ready_q.push(waiting_process);
-                }
+                ready_q.push(waiting_process);
+                waiting_process->in_rq = true;
+                // we only want to remove that i'th element
+                IO_q.erase(IO_q.begin() + i);
+            } else {
+                // for all processes staying in I/O
+                waiting_process->IOBursts[0]--;
+                waiting_process->turnaround_time++;
             }
-            // for all processes staying in I/O
-            waiting_process->IOBursts[0]--;
-            waiting_process->turnaround_time++;
         }
+
 
         /* Ready Queue Operations */
         for (unsigned long i = 0; i < processes.size(); i++)
         {
             // checks every process to see if its arrived at this tick
-            priority_queue<Process, vector<Process*>, CompareName> CPU_q;
-            bool move_to_cpu = false;
             if (processes[i]->t_arrival == time_cur)
             {
-                arriving_process = processes[i];
-                // this should be tie-broken, may result it wrong process being inserted
-                // maybe make secondary priority queue...
-                if (cur_process == NULL)
-                {
-                    CPU_q.push(arriving_process);
-                    move_to_cpu = true;
-                    // cur_process = arriving_process;
-                    // cs_time = t_cs / 2;
-                    // cs_time--;
-                    // cs_count++;
-                } else {
-                    ready_q.push(arriving_process);
-                }
+                Process * arriving_process = processes[i];
+                arriving_process->in_rq = true;
+                ready_q.push(arriving_process);
+                cout << "new process has arrived!\n";
             }
-            if (!CPU_q.empty() && (move_to_cpu == true))
+        }
+        if (!ready_q.empty())
+        {
+            if (cur_process == NULL)
             {
-                cur_process = CPU_q.top();
-                CPU_q.pop();
+                cur_process = ready_q.top();
+                ready_q.pop();
+                cur_process->in_rq = false;
                 cs_time = t_cs / 2;
                 cs_time--;
                 cs_count++;
-                move_to_cpu = false;
             }
-
             /* check if first process can preempt by comparing remaining tau for each process
-             * preemption should also only occur when there is no context switch occuring
-             * If the estimate (tau) of the current process was too short, we won't ever preempt */
-            if ( (ready_q.top()->tau_remaining < cur_process->tau_remaining) && cs_time == 0)
+            * preemption should also only occur when there is no context switch occuring
+            * If the estimate (tau) of the current process was too short, we won't ever preempt */
+            else if ((ready_q.top()->tau_remaining < cur_process->tau_remaining) && cs_time == 0)
             {
                 /* moves current process out to wait for its context
-                 * switch to end before going back to the ready queue */
+                * switch to end before going back to the ready queue */
                 rq_q.push_back(cur_process);
                 // moves top process of the ready queue into the CPU
                 cur_process = ready_q.top();
                 ready_q.pop();
+                cur_process->in_rq = false;
             }
-
-            // for all processes staying in the Ready Queue
-            arriving_process->wait_time++;
-            arriving_process->turnaround_time++;
+            // add else for clarity?
         }
 
-            time_cur++;
+        // for all processes staying in the Ready Queue, use bool in_rq to check
+        for (unsigned long i = 0; i < processes.size(); i++)
+        {
+            Process * ready_process = processes[i];
+            if (ready_process->in_rq)
+            {
+                ready_process->wait_time++;
+                ready_process->turnaround_time++;
+            }
         }
 
+        // the most important single line of code
+        time_cur++;
     }
-
 }
+
+
+// notes: if there is only 1 process it seg faults every time

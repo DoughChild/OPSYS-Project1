@@ -16,7 +16,7 @@ class Process {
         int cur_CPUBurst;
         int cs_time_left;
 
-        //bool in_rq;
+        bool in_rq;
 
         /* will pop CPU and I/O bursts that have finished */
         deque<int> CPUBursts;
