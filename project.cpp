@@ -44,9 +44,10 @@
 #include <time.h>
 #include <ctype.h>
 #include <iostream>
+#include <queue>
 
-#include "process.h"
-#include "SRT.h"
+#include "Process.h"
+//#include "SRT.h"
 
 using namespace std;
 
@@ -69,7 +70,7 @@ double next_exp(double lambda, long upper_bound)
 
 char getAlpha(int i)
 {
-    /* uses the iterator of process creation to assign it a character name */
+    /* uses the iterator of Process creation to assign it a character name */
     string alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     if (i >= 26)
     {
@@ -79,7 +80,7 @@ char getAlpha(int i)
     return alpha[i];
 }
 
-void gen_process_info(double lambda, long upper_bound, process * p)
+void gen_process_info(double lambda, long upper_bound, Process * p)
 {
     /* generates burst amount and burst lengths for a given process */
     p->tau = (int)ceil(1 / lambda);
@@ -98,8 +99,11 @@ void gen_process_info(double lambda, long upper_bound, process * p)
             p->IOBursts.push_back((int)ceil(IOBurst) * 10);
         }
     }
+    p->wait_time = 0;
+    p->turnaround_time = 0;
+    p->cur_CPUBurst = 0;
+    //p->in_rq = false;
 }
-
 
 
 
@@ -146,14 +150,14 @@ int main(int argc, char *argv[])
         srand48(seed);
 
         // makes array with pointers to each process, starting uninitialized
-        process *processes[num_processes];
+        deque<Process*> processes;
 
         /* generates all processes */
         for (int j = 0; j < num_processes; j++)
         {
             /* creates new process, assigns it a unique name, generates process info */
-            process *p = new process();
-            processes[j] = p;
+            Process *p = new Process();
+            processes.push_back(p);
             p->name = getAlpha(j);
             gen_process_info(lambda, upper_bound, p);
         }
@@ -163,10 +167,6 @@ int main(int argc, char *argv[])
         cout << "Process name is " << processes[1]->name << endl;
         cout << "there are " << processes[1]->num_bursts << " CPU bursts\n";
         
-
-
-
-
 
 
 
