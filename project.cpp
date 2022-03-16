@@ -84,6 +84,7 @@ void gen_process_info(double lambda, long upper_bound, Process * p)
 {
     /* generates burst amount and burst lengths for a given process */
     p->tau = (int)ceil(1 / lambda);
+    p->tau_remaining = p->tau;
     double t_arrival = next_exp(lambda, upper_bound);
     p->t_arrival = (int)floor(t_arrival);
     double num_bursts = drand48() * 100;
@@ -101,7 +102,7 @@ void gen_process_info(double lambda, long upper_bound, Process * p)
     }
     p->wait_time = 0;
     p->turnaround_time = 0;
-    p->cur_CPUBurst = 0;
+    p->cur_CPUBurst = p->CPUBursts[0];
     p->in_rq = false;
 }
 
@@ -123,7 +124,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    int num_processes, t_cs, t_slice;
+    int num_processes, t_cs;//, t_slice;
     double alpha, lambda;
     char *ptr;
     long seed, upper_bound;
@@ -134,13 +135,13 @@ int main(int argc, char *argv[])
     upper_bound = strtoul(argv[4], &ptr, 10);
     t_cs = atoi(argv[5]);
     alpha = atof(argv[6]);
-    t_slice = atoi(argv[7]);
+    //t_slice = atoi(argv[7]);
     double tau = 1 / lambda;
 
-    // test print
-    printf("7 arguments are:\n");
-    printf("num processes: %d\nseed: %ld\nlambda: %lf\nupper bound: %ld\n", num_processes, seed, lambda, upper_bound);
-    printf("context switch time: %d\nalpha: %lf\nslice time: %d\n", t_cs, alpha, t_slice);
+    // // test print
+    // printf("7 arguments are:\n");
+    // printf("num processes: %d\nseed: %ld\nlambda: %lf\nupper bound: %ld\n", num_processes, seed, lambda, upper_bound);
+    // printf("context switch time: %d\nalpha: %lf\nslice time: %d\n", t_cs, alpha, t_slice);
 
     /* Loops through each algorithm:
      * 1 = FCFS, 2 = SJF, 3 = SRT, 4 = RR
@@ -163,12 +164,6 @@ int main(int argc, char *argv[])
             gen_process_info(lambda, upper_bound, p);
         }
 
-        cout << "Process name is " << processes[0]->name << endl;
-        cout << "there are " << processes[0]->num_bursts << " CPU bursts\n";
-        //cout << "Process name is " << processes[1]->name << endl;
-        //cout << "there are " << processes[1]->num_bursts << " CPU bursts\n";
-        
-        cout << "about to run SRT" << endl;
         SRT(processes, tau, t_cs, alpha);
         cout << "SRT ran, holy crap!\n";
 
