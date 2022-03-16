@@ -13,4 +13,3 @@ and the calculations that estimate CPU Burst times for preemption-based
 algorithms such as SRT and RR.
 
 Authors
-Iffat Nafisa, Keegan Dant, Nate Zink
