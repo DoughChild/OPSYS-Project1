@@ -165,10 +165,10 @@ int main(int argc, char *argv[])
 
         cout << "Process name is " << processes[0]->name << endl;
         cout << "there are " << processes[0]->num_bursts << " CPU bursts\n";
-        cout << "Process name is " << processes[1]->name << endl;
-        cout << "there are " << processes[1]->num_bursts << " CPU bursts\n";
+        //cout << "Process name is " << processes[1]->name << endl;
+        //cout << "there are " << processes[1]->num_bursts << " CPU bursts\n";
         
-        cout << "about to run SRT\n";
+        cout << "about to run SRT" << endl;
         SRT(processes, tau, t_cs, alpha);
         cout << "SRT ran, holy crap!\n";
 
