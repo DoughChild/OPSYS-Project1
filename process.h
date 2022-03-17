@@ -14,14 +14,14 @@ class Process {
         int wait_time;
         int turnaround_time;
         int cur_CPUBurst;
+        int cur_IOBurst;
         int cs_time_left;
+        bool in_cs;
+        bool out_cs;
 
-        bool in_rq;
+        //bool in_rq;
 
         /* will pop CPU and I/O bursts that have finished */
         deque<int> CPUBursts;
         deque<int> IOBursts;
-
-
-
 };
