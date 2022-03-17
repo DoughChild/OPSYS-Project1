@@ -69,10 +69,24 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
             cswitch_process->turnaround_time++;
             if (cswitch_process->cs_time_left == 0)
             {
-                printf("%d: Process %c is switching out of the CPU and into the ready queue\n", time_cur, cswitch_process->name);
-                ready_q.push(cswitch_process);
-                cswitch_process->in_rq = true;
-                cswitch_process = NULL;
+                if (!cswitch_process->IOBursts.empty())
+                {  
+                    printf("I/O Burst is: %d\n", cswitch_process->IOBursts[0]);
+                    printf("%d: Process %c is switching out of the CPU and into the ready queue\n", time_cur, cswitch_process->name);
+                    ready_q.push(cswitch_process);
+                    cswitch_process->in_rq = true;
+                    cswitch_process = NULL;
+                } else {
+                    printf("%d: Process %c is on its way out\n", time_cur, cur_process->name);
+                    printf("context switch time is %d\n", cs_time);
+                    // remove_process(processes, cur_process->name);   
+                    unsigned long len = processes.size();
+                    for (unsigned long i = 0; i < len; i++)
+                    {
+                        if (processes[i]->name == cur_process->name)
+                            processes.erase(processes.begin() + i);
+                    }
+                }
             } else {
                 cswitch_process->cs_time_left--;
             }
@@ -105,17 +119,17 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                     printf("%d: Process %c is going to I/O\n", time_cur, cur_process->name);
                     IO_q.push_back(cur_process);
                     cur_process->IOBursts[0] += (t_cs / 2);
-                } else {
-                    printf("%d: Process %c is on its way out\n", time_cur, cur_process->name);
-                    printf("context switch time is %d\n", cs_time);
-                    // remove_process(processes, cur_process->name);   
-                    unsigned long len = processes.size();
-                    for (unsigned long i = 0; i < len; i++)
-                    {
-                        if (processes[i]->name == cur_process->name)
-                            processes.erase(processes.begin() + i);
-                    }
-                }
+                } //else {
+                    // printf("%d: Process %c is on its way out\n", time_cur, cur_process->name);
+                    // printf("context switch time is %d\n", cs_time);
+                    // // remove_process(processes, cur_process->name);   
+                    // unsigned long len = processes.size();
+                    // for (unsigned long i = 0; i < len; i++)
+                    // {
+                    //     if (processes[i]->name == cur_process->name)
+                    //         processes.erase(processes.begin() + i);
+                    // }
+                //}
                 cs_time--;
                 cswitch_process = cur_process;
                 cur_process = NULL;
@@ -133,17 +147,22 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
         {
             Process * waiting_process = IO_q[i];
             //printf("%d: Process %c has %d ms left in I/O\n", time_cur, waiting_process->name, waiting_process->IOBursts[0]);
-            if (waiting_process->IOBursts[0] == 0)
+            if (waiting_process->IOBursts.front() == 0)
             {
+                printf("Processes I/O burst size: %lu\n", waiting_process->IOBursts.size());
                 waiting_process->IOBursts.pop_front();
+                printf("Processes I/O burst size after pop: %lu\n", waiting_process->IOBursts.size());
                 ready_q.push(waiting_process);
                 waiting_process->in_rq = true;
+                printf("length of IO_q: %lu\n", IO_q.size());
                 // we only want to remove that i'th element
                 IO_q.erase(IO_q.begin() + i);
+                printf("length of IO_q after: %lu\n", IO_q.size());
             } else {
                 // for all processes staying in I/O
                 waiting_process->IOBursts[0]--;
                 waiting_process->turnaround_time++;
+                //printf("I/O queue size is: %ld\n", IO_q.size());
             }
         }
 
@@ -204,7 +223,11 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                 ready_process->wait_time++;
                 ready_process->turnaround_time++;
             }
+            
         }
+
+        printf("length of IO_q: %lu\n", IO_q.size());
+                
 
         // the most important single line of code
         time_cur++;

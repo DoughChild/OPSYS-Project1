@@ -19,7 +19,7 @@ class Process {
         bool in_cs;
         bool out_cs;
 
-        //bool in_rq;
+        bool in_rq;
 
         /* will pop CPU and I/O bursts that have finished */
         deque<int> CPUBursts;

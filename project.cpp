@@ -164,6 +164,7 @@ int main(int argc, char *argv[])
             gen_process_info(lambda, upper_bound, p);
         }
 
+        printf("length of CPU bursts: %lu, length of I/O bursts: %lu\n", processes[0]->CPUBursts.size(), processes[0]->IOBursts.size());
         SRT(processes, tau, t_cs, alpha);
         cout << "SRT ran, holy crap!\n";
 
