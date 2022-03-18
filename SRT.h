@@ -65,27 +65,50 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
         {
             // decrement context switch count before we can use CPU again
             cs_time--;
+
+
+            // THIS MIGHT BE WRONG
             // adds time to current process
             cswitch_process->turnaround_time++;
+
+            
+            // either finishing context switch IN or OUT of CPU
+            // destination could be CPU, Ready queue, or even I/O
             if (cswitch_process->cs_time_left == 0)
             {
-                if (!cswitch_process->IOBursts.empty())
-                {  
-                    printf("I/O Burst is: %d\n", cswitch_process->IOBursts[0]);
-                    printf("%d: Process %c is switching out of the CPU and into the ready queue\n", time_cur, cswitch_process->name);
+                // switching process finished switch, and is heading to CPU
+                if (cswitch_process->dest == 'c') {
+                    cur_process = cswitch_process;
+                    // can only have come from ready queue
+                    cswitch_process->in_rq = false;
+                    cswitch_process = NULL;
+                }
+                // switching process has finished its CPU burst and is going to I/O
+                else if (cswitch_process->dest == 'i') {
+                    if (!cswitch_process->IOBursts.empty())
+                    {
+                        IO_q.push_back(cswitch_process);
+                        cswitch_process = NULL;
+                        // skips ready queue, so no need to update its value
+                    } else {
+                        printf("%d: Process %c is on its way out\n", time_cur, cswitch_process->name);
+                        for (unsigned long i = 0; i < processes.size(); i++)
+                        {
+                            if (processes[i]->name == cswitch_process->name)
+                            processes.erase(processes.begin() + i);
+                        }
+                    }
+                }
+                // switching process has finished its CPU burst and is going to the ready queue
+                else if (cswitch_process->dest == 'r') {
                     ready_q.push(cswitch_process);
                     cswitch_process->in_rq = true;
-                    cswitch_process = NULL;
+                    cswitch_process = ready_q.top();
+                    cs_time = t_cs / 2;
+                    cs_time--;
+                    cs_count++;
                 } else {
-                    printf("%d: Process %c is on its way out\n", time_cur, cur_process->name);
-                    printf("context switch time is %d\n", cs_time);
-                    // remove_process(processes, cur_process->name);   
-                    unsigned long len = processes.size();
-                    for (unsigned long i = 0; i < len; i++)
-                    {
-                        if (processes[i]->name == cur_process->name)
-                            processes.erase(processes.begin() + i);
-                    }
+                    printf("Major Error occurred\n\n\n\n\n\n\n\n\n");
                 }
             } else {
                 cswitch_process->cs_time_left--;
@@ -113,33 +136,18 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                 cur_process->tau_remaining = cur_process->tau;
                 printf(", new tau is: %d\n", cur_process->tau);
                 cur_process->cur_CPUBurst = cur_process->CPUBursts.front();
-                // check if the process is heading to I/O, otherwise process is ending
-                if (!cur_process->IOBursts.empty())
-                {
-                    printf("%d: Process %c is going to I/O\n", time_cur, cur_process->name);
-                    IO_q.push_back(cur_process);
-                    cur_process->IOBursts[0] += (t_cs / 2);
-                } //else {
-                    // printf("%d: Process %c is on its way out\n", time_cur, cur_process->name);
-                    // printf("context switch time is %d\n", cs_time);
-                    // // remove_process(processes, cur_process->name);   
-                    // unsigned long len = processes.size();
-                    // for (unsigned long i = 0; i < len; i++)
-                    // {
-                    //     if (processes[i]->name == cur_process->name)
-                    //         processes.erase(processes.begin() + i);
-                    // }
-                //}
+
                 cs_time--;
+                cur_process->dest = 'i';
                 cswitch_process = cur_process;
                 cur_process = NULL;
             } else {
-                //cout << "cpu burst decreasing\n";
                 cur_process->CPUBursts[0]--;
                 cur_process->tau_remaining--;
                 cur_process->turnaround_time++;
             }
         }
+
 
 
         /* Waiting on I/O Operations */
@@ -162,9 +170,9 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                 // for all processes staying in I/O
                 waiting_process->IOBursts[0]--;
                 waiting_process->turnaround_time++;
-                //printf("I/O queue size is: %ld\n", IO_q.size());
             }
         }
+
 
 
         /* Ready Queue Operations */
@@ -191,6 +199,7 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                 cs_time = t_cs / 2;
                 cs_time--;
                 cs_count++;
+                cur_process->dest = 'c';
                 cswitch_process = cur_process;
             }
             /* check if first process can preempt by comparing remaining tau for each process
@@ -201,15 +210,13 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                 cout << "preempting\n";
                 printf("%d: Process %c has a tau of %d, and tau remaining of %d\n", time_cur, ready_q.top()->name, ready_q.top()->tau, ready_q.top()->tau_remaining);
                 printf("%d: Process %c has a tau of %d, and tau remaining of %d\n", time_cur, cur_process->name, cur_process->tau, cur_process->tau_remaining);
-                // moves top process of the ready queue into the CPU
-                cur_process = ready_q.top();
-                ready_q.pop();
-                cur_process->in_rq = false;
-                cs_time = t_cs;
-                cs_time--;
-                // TODO: maybe change this value to += 2 to represent the two switches?
-                cs_count++;
+                // sets the switching process to be headed for the ready queue.
+                cur_process->dest = 'r';
                 cswitch_process = cur_process;
+                // we will generate a second context switch when this one is finished
+                cs_time = t_cs / 2;
+                cs_time--;
+                cs_count++;
             }
             // add else for clarity?
         }
@@ -225,9 +232,6 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
             }
             
         }
-
-        printf("length of IO_q: %lu\n", IO_q.size());
-                
 
         // the most important single line of code
         time_cur++;

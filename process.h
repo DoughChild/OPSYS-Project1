@@ -16,6 +16,8 @@ class Process {
         int cur_CPUBurst;
         int cur_IOBurst;
         int cs_time_left;
+        // r for ready queue, i for I/O, c for CPU
+        char dest;
         bool in_cs;
         bool out_cs;
 
