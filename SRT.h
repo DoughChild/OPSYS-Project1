@@ -20,9 +20,9 @@ struct CompareProcess
          */
         cout << "calling processes: " << p1->name << " and " << p2->name << endl;
         if (p1->CPUBursts.front() != p2->CPUBursts.front())
-            return p1->CPUBursts.front() < p2->CPUBursts.front();
+            return p1->CPUBursts.front() > p2->CPUBursts.front();
         else
-            return p1->name < p2->name;
+            return p1->name > p2->name;
     }
 };
 
@@ -112,26 +112,13 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                 }
                 // switching process has finished its CPU burst and is going to the ready queue
                 else if (cswitch_process->dest == 'r') {
-                    printf("cswitch process %c is leaving CPU\n", cswitch_process->name);
-                    printf("top of ready queue is %c\n", ready_q.top()->name);
+                    // remove the CPU process that is switching out by adding it to the ready queue
                     cswitch_process->in_rq = true;
-
-                    printf("%d: (CPU) size of ready queue: %lu\n", time_cur, ready_q.size());
                     ready_q.push(cswitch_process);
-                    printf("size of ready queue after push: %lu\n", ready_q.size());
-
-
-                    printf("top of ready queue is %c\n", ready_q.top()->name);
+                    // now change the process that preempted the CPU process to be switching
+                    // and remove it from the ready queue
                     cswitch_process = ready_q.top();
-                    printf("read queue size %lu\n", ready_q.size());
                     ready_q.pop();
-                    printf("ready queue empty? %d\n", ready_q.empty());
-                    printf("top of ready queue is %c\n", ready_q.top()->name);
-                    printf("%c has %d time left on the current CPU burst\n", ready_q.top()->name, ready_q.top()->CPUBursts.front());
-                    ready_q.pop();
-                    printf("read queue size %lu\n", ready_q.size());
-
-
                     cs_time = t_cs / 2;
                     cs_time--;
                     cs_count++;
@@ -188,11 +175,7 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
             if (waiting_process->IOBursts.front() == 0)
             {
                 waiting_process->IOBursts.pop_front();
-
-                printf("%d: (I/O) size of ready queue: %lu\n", time_cur, ready_q.size());
                 ready_q.push(waiting_process);
-                printf("size of ready queue after push: %lu\n", ready_q.size());
-
                 waiting_process->in_rq = true;
                 // we only want to remove that i'th element
                 IO_q.erase(IO_q.begin() + i);
@@ -213,9 +196,7 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
             {
                 Process * arriving_process = processes[i];
                 arriving_process->in_rq = true;
-                printf("%d: (RQ) size of ready queue: %lu\n", time_cur, ready_q.size());
                 ready_q.push(arriving_process);
-                printf("size of ready queue after push: %lu\n", ready_q.size());
                 cout << "new process has arrived!\n";
             }
         }
