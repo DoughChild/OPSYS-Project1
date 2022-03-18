@@ -35,6 +35,7 @@
  */
 
 /* compile using: g++ -Wall -Werror project.cpp -lm */
+/* use arguments: ./a.out 1 9 0.01 4096 4 0.5 256 */
 
 
 #include <stdio.h>
