@@ -63,21 +63,14 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
         // if we are context switching
         if (cs_time != 0)
         {
-            // decrement context switch count before we can use CPU again
-            cs_time--;
-
-
-            // THIS MIGHT BE WRONG
-            // adds time to current process
-            cswitch_process->turnaround_time++;
-
-            
             // either finishing context switch IN or OUT of CPU
             // destination could be CPU, Ready queue, or even I/O
             if (cswitch_process->cs_time_left == 0)
             {
                 // switching process finished switch, and is heading to CPU
                 if (cswitch_process->dest == 'c') {
+                    // need to account for turnaround time when switching
+                    cswitch_process->turnaround_time++;
                     cur_process = cswitch_process;
                     // can only have come from ready queue
                     cswitch_process->in_rq = false;
@@ -88,7 +81,6 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                     if (!cswitch_process->IOBursts.empty())
                     {
                         IO_q.push_back(cswitch_process);
-                        cswitch_process = NULL;
                         // skips ready queue, so no need to update its value
                     } else {
                         printf("%d: Process %c is on its way out\n", time_cur, cswitch_process->name);
@@ -98,6 +90,8 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                             processes.erase(processes.begin() + i);
                         }
                     }
+                    cur_process = NULL;
+                    cswitch_process = NULL;
                 }
                 // switching process has finished its CPU burst and is going to the ready queue
                 else if (cswitch_process->dest == 'r') {
@@ -113,6 +107,9 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
             } else {
                 cswitch_process->cs_time_left--;
             }
+
+            // decrement context switch count before we can use CPU again
+            cs_time--;
         }
         else if (processes.empty())
         {
@@ -129,18 +126,18 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                 // remove burst time of 0, this makes next CPU burst the first in the queue
                 cur_process->CPUBursts.pop_front();
                 cs_count++;
-                // recalculate and reset tau
-                printf("%d: Process %c has finished their CPU burst, and has tau of %d, tau remaining of %d\n", time_cur, cur_process->name, cur_process->tau, cur_process->tau_remaining);
-                printf("Actual CPU burst time: %d, Alpha: %f", cur_process->cur_CPUBurst, alpha);
-                cur_process->tau = calc_tau(cur_process->tau, cur_process->cur_CPUBurst, alpha);
-                cur_process->tau_remaining = cur_process->tau;
-                printf(", new tau is: %d\n", cur_process->tau);
-                cur_process->cur_CPUBurst = cur_process->CPUBursts.front();
-
+                if (!cur_process->IOBursts.empty())
+                {
+                    // recalculate and reset tau
+                    printf("Actual CPU burst time: %d, Alpha: %f", cur_process->cur_CPUBurst, alpha);
+                    cur_process->tau = calc_tau(cur_process->tau, cur_process->cur_CPUBurst, alpha);
+                    cur_process->tau_remaining = cur_process->tau;
+                    printf(", new tau is: %d\n", cur_process->tau);
+                    cur_process->cur_CPUBurst = cur_process->CPUBursts.front();
+                }
                 cs_time--;
                 cur_process->dest = 'i';
                 cswitch_process = cur_process;
-                cur_process = NULL;
             } else {
                 cur_process->CPUBursts[0]--;
                 cur_process->tau_remaining--;
@@ -157,15 +154,11 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
             //printf("%d: Process %c has %d ms left in I/O\n", time_cur, waiting_process->name, waiting_process->IOBursts[0]);
             if (waiting_process->IOBursts.front() == 0)
             {
-                printf("Processes I/O burst size: %lu\n", waiting_process->IOBursts.size());
                 waiting_process->IOBursts.pop_front();
-                printf("Processes I/O burst size after pop: %lu\n", waiting_process->IOBursts.size());
                 ready_q.push(waiting_process);
                 waiting_process->in_rq = true;
-                printf("length of IO_q: %lu\n", IO_q.size());
                 // we only want to remove that i'th element
                 IO_q.erase(IO_q.begin() + i);
-                printf("length of IO_q after: %lu\n", IO_q.size());
             } else {
                 // for all processes staying in I/O
                 waiting_process->IOBursts[0]--;
@@ -185,7 +178,6 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
                 arriving_process->in_rq = true;
                 ready_q.push(arriving_process);
                 cout << "new process has arrived!\n";
-                printf("%d: Process %c is arriving with %d bursts\n", time_cur, arriving_process->name, arriving_process->num_bursts);
             }
         }
         if (!ready_q.empty())
@@ -205,19 +197,17 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
             /* check if first process can preempt by comparing remaining tau for each process
             * preemption should also only occur when there is no context switch occuring
             * If the estimate (tau) of the current process was too short, we won't ever preempt */
-            else if ((ready_q.top()->tau_remaining < cur_process->tau_remaining) && cs_time == 0)
-            {
-                cout << "preempting\n";
-                printf("%d: Process %c has a tau of %d, and tau remaining of %d\n", time_cur, ready_q.top()->name, ready_q.top()->tau, ready_q.top()->tau_remaining);
-                printf("%d: Process %c has a tau of %d, and tau remaining of %d\n", time_cur, cur_process->name, cur_process->tau, cur_process->tau_remaining);
-                // sets the switching process to be headed for the ready queue.
-                cur_process->dest = 'r';
-                cswitch_process = cur_process;
-                // we will generate a second context switch when this one is finished
-                cs_time = t_cs / 2;
-                cs_time--;
-                cs_count++;
-            }
+            // else if ((ready_q.top()->tau_remaining < cur_process->tau_remaining) && cs_time == 0)
+            // {
+            //     cout << "preempting\n";
+            //     // sets the switching process to be headed for the ready queue.
+            //     cur_process->dest = 'r';
+            //     cswitch_process = cur_process;
+            //     // we will generate a second context switch when this one is finished
+            //     cs_time = t_cs / 2;
+            //     cs_time--;
+            //     cs_count++;
+            // }
             // add else for clarity?
         }
 
@@ -235,7 +225,14 @@ void SRT(deque<Process *> processes, double tau, int t_cs, double alpha)
 
         // the most important single line of code
         time_cur++;
+        if (time_cur == 444)
+        {
+            printf("current process name is %c\n", cur_process->name);
+            printf("context switch time is %d\n", cs_time);
+        }
     }
+    printf("time %d\n", time_cur);
+    printf("number of context switches: %d\n", cs_count);
 }
 
 
