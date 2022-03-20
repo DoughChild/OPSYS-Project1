@@ -105,6 +105,7 @@ void gen_process_info(double lambda, long upper_bound, Process * p)
     p->turnaround_time = 0;
     p->cur_CPUBurst = p->CPUBursts[0];
     p->in_rq = false;
+    p->cs_time_left = 0;
 }
 
 
@@ -137,7 +138,8 @@ int main(int argc, char *argv[])
     t_cs = atoi(argv[5]);
     alpha = atof(argv[6]);
     //t_slice = atoi(argv[7]);
-    double tau = 1 / lambda;
+    int tau;
+    tau = (int)ceil(tau = 1 / lambda);
 
     // // test print
     // printf("7 arguments are:\n");
