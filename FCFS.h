@@ -1,111 +1,181 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <math.h>
-#include <ctype.h>
+//
+// Created by Iffat Nafisa on 3/15/22.
+//
+//#include "process.h"
+#include <deque>
 #include <iostream>
-#include <queue>
-#include <vector>
-#include "Process.h"
+#include <map>
+#include <set>
+#include "functions.h"
+using namespace std;
 
-bool sort_by_arrival(Process* p1, Process* p2)
-{
-    return (this->t_arrival < p1->t_arrival);
-}
-
-bool sort_by_name(Process* p1, Process* p2)
-{
-    return (this->name < p1->name);
-}
-
-void FCFS(deque<Process*> processes, int t_cs)
-{
-    //cpu time in ms
-    int cpu_t = 0;
-    Process* running == NULL;
-    deque<Process*> ready_queue;
-    std::vector<Process*> waiting_queue;
-    std::vector<Process*> finished_IO;
-
-    //loop through all processes and set their cur_CPUBurst and cur_IOBurst to 0
-    for(unsigned int i = 0; i < processes.size(); i++){
-        processes[i]->cur_CPUBurst = processes[i]->CPUBursts.front();
-        processes[i]->CPUBursts.pop_front();
-        processes[i]->cur_CPUBurst = processes[i]->CPUBursts.front();
-        processes[i]->IOBursts.pop_front();
+void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
+    // error check
+    if (processes.size() == 0) {
+        return;
+    }
+    if (t_cs < 0 || alpha < 0) {
+        return;
     }
 
-    //sort process deque
-    sort(processes.begin(), processes.end(), sort_by_arrival)
+    int clock = 0;
 
-    //loop until process queue, waiting queue, running process, and ready queue are all empty
-    while(!processes.empty() || !ready_queue.empty() || !waiting_queue.empty() || running != NULL;){
-        //decrement running cpu burst's timer, if it is decremted to 0 replace with next burst time from the burst dequeue
-        //then add proccess to waiting queue for I/O
-        if(running != NULL && !running->in_cs && !running->out_cs){
-            running->cur_CPUBurst--;
-            if(running->cur_CPUBurst == 0){
-                running->cur_CPUBurst = running->CPUBursts.front();
-                running->CPUBursts.pop_front();
-                running->out_cs = true;
-                running->cs_time_left = t_cs;
-            }
-        }
-        //allow running to begin cpu burst once context switch has finished for starting cpu burst
-        else if(running->in_cs){
-            running->cs_time_left--;
-            if(running->cs_time_left == 0){
-                running->in_cs = false;
-            }
-        }
-        //set running equal to NULL once context switch has finished for process ending cpu burst
-        else if(running->out_cs){
-            running->cs_time_left--;
-            if(running->cs_time_left == 0){
-                running->out_cs = false;
-                waiting_queue.push_back(running);
-                running = NULL;
-            }
-        }
-
-        //loop through waiting_queue and decrement all I/0 burst timers
-        //check all waiting_queue I/O burst timers. If they are 0 replace with next burst time from the burst dequeue
-        //remove process from waiting queue and add them to finished I/O vector
-        for(unsigned int i = 0; i < waiting_queue.size(); i++){
-            waiting_queue[i]->cur_IOBurst--;
-            if(waiting_queue[i]->cur_IOBurst == 0){
-                waiting_queue[i]->cur_IOBurst = waiting_queue[i]->IOBursts.front();
-                waiting_queue[i]->IOBursts.pop_front();
-                finished_IO.push_back(waiting_queue[i]);
-                waiting_queue.remove(waiting_queue.begin()+i);
-            }
-        }
-
-        //if finished I/O vector is more than one element add to ready_queue in alphabetical order, otherwise just add the one
-        //element to the ready queue
-        finished_IO.sort(finished_IO.begin(), finished_IO.end(), sort_by_name);
-        while(finished_IO.size() > 0){
-            ready_queue.push_back(finished_IO[0]);
-            finished_IO.pop_front();
-        }
-
-        //check if curent time is equal to next process arrival time. if it is equal to current time, add it to the ready_queue
-        //with front and remove it from process_queue with pop_front. Make sure to keep using front to check for process's 
-        //arriving at the same time
-        while(processes.front()->t_arrival == cput_t){
-            ready_queue.push_back(processes.front());
-            processes.pop_front();
-        }
-
-        //assign next running process from the front of the ready queue and pop it if running is NULL
-        if(running == NULL){
-            running = ready_queue.front();
-            ready_queue.pop_front();
-            running->in_cs = true;
-            running->cs_time_left = t_cs;
-        }
-        
-        //increment cpu_t
-        cpu_t++;
+    vector<Process*> readyQ;
+    map<int, vector<Process*> > waitingMap;
+    // key is the IO bust end time i-e time for next interesting event
+    vector<Process*> processesVector;
+    for (int i = 0; i < processes.size(); i++) {
+        Process *p = new Process();
+        p->copy(processes[i]);
+        processesVector.push_back(p);
     }
+
+    sort(processesVector.begin(), processesVector.end(), shortestArrival());
+
+    // count for processes completed
+    int numProcesses = processes.size();
+    int completedProcess = 0;
+
+    // count for which process is using the CPU
+    Process* usingCPU = NULL;
+    // if CPU is in use
+    bool CPUActive = false;
+    // clock time when a CPU is released and starts context switching for next process
+    int releaseCPU = 0;
+
+    // context switch counts
+    bool contextSwitch = false; // if any process is currently context switching
+    Process* contextSwitchingIn = NULL; // process which is currently context switching in the CPU
+    Process* contextSwitchingOut = NULL; // process which is currently context switching out the CPU
+    int contextSwitchUntil = -99999999; // until which time a process is context switching in or out
+    int contextSwitchCount = 0; // total number of context switches
+
+    // start of simulation
+    printf("time %dms: Simulator started for FCFS [Q empty]\n", clock);
+
+    while (true) {
+        // check if any process can start using the CPU
+        if (!CPUActive && contextSwitchUntil <= clock && contextSwitchingIn != NULL) {
+            // process contextSwitchingIn should enter the CPU
+            contextSwitchingIn->status = "CPU";
+            CPUActive = true;
+            contextSwitchCount += 1;
+            usingCPU = contextSwitchingIn;
+            printf("time %dms: Process %c started using the CPU for %dms burst ", clock,
+                   usingCPU->name, usingCPU->CPUBursts[0]);
+            printQueue(readyQ);
+            updateOnCPUEntry(usingCPU, clock, t_cs);
+            // release the CPU after contextSwitch
+            releaseCPU = clock + usingCPU->time_for_next_interesting_event;
+            contextSwitch = false;
+            contextSwitchingIn = NULL;
+        }
+
+        // CPU Burst completion
+        if (CPUActive) {
+            if(usingCPU->time_for_next_interesting_event == clock) {
+                // check if any CPU Burst left
+                if (usingCPU->CPUBursts.size() > 0) {
+                    if (usingCPU->CPUBursts.size() == 1) {
+                        printf("time %dms: Process %c completed a CPU burst; %lu burst to go ", clock,
+                               usingCPU->name, usingCPU->CPUBursts.size());
+                    } else {
+                        printf("time %dms: Process %c completed a CPU burst; %lu bursts to go ", clock,
+                               usingCPU->name, usingCPU->CPUBursts.size());
+                    }
+                    printQueue(readyQ);
+
+                    // CONTEXT SWITCH OUT OF CPU
+                    contextSwitch = true;
+                    contextSwitchingOut = usingCPU;
+                    contextSwitchingOut->status = "Waiting";
+                    updateOnSwitchOutOfCPU(contextSwitchingOut, clock, t_cs);
+                    printf("time %dms: Process %c switching out of CPU; will block on I/O until time %dms ", clock, usingCPU->name,
+                           usingCPU->time_for_next_interesting_event);
+                    printQueue(readyQ);
+                    contextSwitchUntil = clock + (t_cs / 2);
+
+                    // add to waiting map
+                    waitingMap[contextSwitchingOut->time_for_next_interesting_event].push_back(contextSwitchingOut);
+                    usingCPU = NULL;
+
+                    // Release CPU
+                    CPUActive = false;
+                    releaseCPU = clock;
+                }
+                else {
+                    // the process terminates
+                    printf("time %dms: Process %c terminated ", clock, usingCPU->name);
+                    printQueue(readyQ);
+                    completedProcess += 1;
+
+                    // CONTEXT SWITCH
+                    contextSwitch = true;
+                    contextSwitchingOut = usingCPU;
+                    contextSwitchingOut->status = "Terminated";
+                    contextSwitchUntil = clock + (t_cs / 2);
+
+                    // Release CPU
+                    CPUActive = false;
+                    releaseCPU = clock;
+                }
+            }
+        }
+
+        // I/O Burst completion
+        map<int, vector<Process *> >::iterator it;
+        it = waitingMap.find(clock);
+        if(it != waitingMap.end()) {
+            // finish IO for the processes in the list and erase the processes from waitingMap
+            for (int i = 0; i < it->second.size(); i++)  {
+                // finished IO
+                // re-enter the readyQ
+                Process * temp2 = it->second[i];
+                temp2->arrived_readyQ = clock;
+                temp2->in_rq = true;
+                temp2->status = "Ready";
+                // Push to readyQ and sort
+                readyQ.push_back(temp2);
+                printf("time %dms: Process %c completed I/O; added to ready queue ", clock, temp2->name);
+                printQueue(readyQ);
+            }
+            // delete from waiting map
+            waitingMap.erase(it);
+        }
+
+        // New Process Arrivals
+        vector<Process*> arrivedProcesses;
+        arrivedProcesses = processArrived(processesVector, clock);
+        if (arrivedProcesses.size() > 0) {
+            for (int i = 0; i < arrivedProcesses.size(); i++) {
+                arrivedProcesses[i]->arrived_readyQ = clock;
+                arrivedProcesses[i]->in_rq = true;
+                readyQ.push_back(arrivedProcesses[i]);
+                printf("time %dms: Process %c arrived; added to ready queue ", clock,
+                       arrivedProcesses[i]->name);
+                printQueue(readyQ);
+            }
+        }
+
+        if (numProcesses == completedProcess) {
+            clock += (t_cs / 2);
+            printf("time %dms: Simulator ended for FCFS ", clock);
+            printQueue(readyQ);
+            break;
+        }
+
+        // CONTEXT SWITCH IN
+        // if readyQ is not empty, CPU is not active, and if no process is contextSwitching
+        if (readyQ.size() > 0  && !CPUActive && contextSwitchUntil <= clock) {
+            contextSwitchingIn = readyQ.at(0);
+            contextSwitch = true;
+            contextSwitchUntil = clock + (t_cs/2);
+            // remove from readyQ
+            readyQ.erase(readyQ.begin());
+        }
+
+        clock++;
+    }
+//    cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
 }
+
