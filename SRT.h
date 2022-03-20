@@ -94,12 +94,17 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
             {
                 // switching process finished switch, and is heading to CPU
                 if (cswitch_process->dest == 'c') {
-                    printf("time %dms: Process %c (tau %dms) started using the CPU for %dms burst ", time_cur, cswitch_process->name, cswitch_process->tau, cswitch_process->CPUBursts.front());
+                    if (cswitch_process->preempted) {
+                        printf("time %dms: Process %c (tau %dms) started using the CPU for remaining %dms of %dms burst ", time_cur, cswitch_process->name, cswitch_process->tau, cswitch_process->CPUBursts.front(), cswitch_process->cur_CPUBurst);
+                    } else {
+                        printf("time %dms: Process %c (tau %dms) started using the CPU for %dms burst ", time_cur, cswitch_process->name, cswitch_process->tau, cswitch_process->CPUBursts.front());
+                    }
                     printQueue(ready_q);
                     // need to account for turnaround time when switching
                     cswitch_process->CPUBursts[0]--;
                     cswitch_process->tau_remaining--;
                     cswitch_process->turnaround_time++;
+                    cswitch_process->preempted = false;
                     cur_process = cswitch_process;
                     cswitch_process = NULL;
                     context_switching = false;
@@ -217,27 +222,32 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
             if (waiting_process->IOBursts.front() == 0)
             {
                 //printf("I/O queue has size %lu\n", IO_q.size());
-                // if (cur_process != NULL) {
-                //     if (waiting_process->tau_remaining < cur_process->tau_remaining) {
-                //         printf("time %dms: Process %c (tau %dms) completed I/O; preempting %c\n", time_cur, waiting_process->name, waiting_process->tau, cur_process->name);
-                //     }
-                // } else {
-                //     printf("time %dms: Process %c (tau %dms) completed I/O; added to ready queue\n", time_cur, waiting_process->name, waiting_process->tau);
-                // }
+                if (cur_process != NULL) {
+                    if (waiting_process->tau_remaining < cur_process->tau_remaining) {
+                        printf("time %dms: Process %c (tau %dms) completed I/O; preempting %c ", time_cur, waiting_process->name, waiting_process->tau, cur_process->name);
+                    } else {
+                        printf("time %dms: Process %c (tau %dms) completed I/O; added to ready queue ", time_cur, waiting_process->name, waiting_process->tau);
+                    }
+                } else {
+                    printf("time %dms: Process %c (tau %dms) completed I/O; added to ready queue ", time_cur, waiting_process->name, waiting_process->tau);
+                }
                 waiting_process->IOBursts.pop_front();
                 waiting_process->in_rq = true;
 
                 //ready_q.push(waiting_process);
                 ready_q.push_back(waiting_process);
                 sort(ready_q.begin(), ready_q.end(), CompareProcess());
-                printf("time %dms: Process %c (tau %dms) completed I/O; added to ready queue ", time_cur, waiting_process->name, waiting_process->tau);
                 printQueue(ready_q);
+
+                //printf("time %dms: Process %c (tau %dms) completed I/O; added to ready queue ", time_cur, waiting_process->name, waiting_process->tau);
+                
                 
                 // we only want to remove that i'th element
                 IO_q.erase(IO_q.begin() + i);
+                i--;
             } else {
                 // for all processes staying in I/O
-                waiting_process->IOBursts[0]--;
+                waiting_process->IOBursts.front()--;
             }
         }
 
@@ -291,8 +301,10 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                 // printf("current process (%c) remaining tau time: %d\n", cur_process->name, cur_process->tau_remaining);
 
                 //sets the switching process to be headed for the ready queue.
+                cur_process->preempted = true;
                 cur_process->dest = 'r';
                 cur_process->turnaround_time++;
+                cur_process->CPUBursts.front()++;
                 cswitch_process = cur_process;
                 cur_process = NULL;
                 // we will generate a second context switch when this one is finished

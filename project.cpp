@@ -105,6 +105,7 @@ void gen_process_info(double lambda, long upper_bound, Process * p)
     p->turnaround_time = 0;
     p->cur_CPUBurst = p->CPUBursts[0];
     p->in_rq = false;
+    p->preempted = false;
     p->cs_time_left = 0;
 }
 
