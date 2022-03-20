@@ -1,7 +1,7 @@
 #include <vector>
 #include <string>
 #include <queue>
-
+#include <iostream>
 using namespace std;
 
 class Process {
@@ -17,6 +17,7 @@ class Process {
         int cs_time_left;
         int arrived_readyQ;
         int time_for_next_interesting_event;
+        string status;
 
         //bool in_rq;
         bool in_rq;
@@ -29,6 +30,7 @@ class Process {
             cout << "t_arrival " << t_arrival << endl;
             cout << "name " << name << endl;
             cout << "tau " << tau << endl;
+            cout << "status " << status << endl;
             if (CPUBursts.size() > 0) {
                 cout << "CPUBurst[0] " << CPUBursts[0] << endl;
             }
@@ -48,6 +50,7 @@ class Process {
             in_rq = p->in_rq;
             time_for_next_interesting_event = p->time_for_next_interesting_event;
             arrived_readyQ = p->arrived_readyQ;
+            status = p->status;
             for (int i = 0; i < p->CPUBursts.size(); i++) {
                 CPUBursts.push_back(p->CPUBursts[i]);
             }
