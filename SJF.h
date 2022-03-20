@@ -1,101 +1,13 @@
 //
 // Created by Iffat Nafisa on 3/15/22.
 //
-#define CPUSCHEDULING_SJF_H
-#include "process.h"
+//#include "process.h"
 #include <deque>
 #include <iostream>
 #include <map>
-#include "tau_calc.h"
 #include <set>
-
+#include "functions.h"
 using namespace std;
-
-struct shortestJob {
-public:
-    bool operator() (Process const *p1, Process const *p2) {
-        if (p1->tau < p2->tau) {
-            return true;
-        }
-
-        else if (p1->tau > p2->tau) {
-            return false;
-        }
-        else {
-            if (p1->name <= p2->name) {
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
-    }
-};
-
-struct shortestArrival {
-public:
-    bool operator() (Process const *p1, Process const *p2) {
-        if (p1->t_arrival < p2->t_arrival) {
-            return true;
-        }
-
-        else if (p1->t_arrival > p2->t_arrival) {
-            return false;
-        }
-        else {
-            if (p1->name <= p2->name) {
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
-    }
-};
-
-
-void printProcesses(vector<Process*> processes) {
-    cout << "Printing out processes vector" << endl;
-    for (int i = 0; i < processes.size(); i++) {
-        processes[i]->printProcess();
-    }
-}
-
-
-vector<Process *> processArrived(vector<Process*> processes, int t) {
-    vector <Process*> arrivedProcesses;
-    for (int i = 0; i < processes.size(); i++) {
-        if (processes[i]->t_arrival == t) {
-            arrivedProcesses.push_back(processes[i]);
-        }
-    }
-    return arrivedProcesses;
-}
-
-void printQueue (vector<Process*> processes) {
-    cout << "[Q ";
-    if (processes.size() == 0) {
-        cout << "empty]" << endl;
-        return;
-    }
-    for (int i = 0; i < processes.size(); i++) {
-        cout << processes[i]->name;
-    }
-    cout << "]" << endl;
-}
-
-void updateOnCPUEntry(Process *p, int t, int t_cs) {
-    double waittime = t - p->arrived_readyQ - double(t_cs / 2.0);
-    p->wait_time += waittime;
-    p->cur_CPUBurst = p->CPUBursts[0];
-    p->CPUBursts.erase(p->CPUBursts.begin());
-    p->time_for_next_interesting_event = t + p->cur_CPUBurst;
-}
-
-void updateOnSwitchOutOfCPU(Process *p, int t, int t_cs) {
-    p->time_for_next_interesting_event = t + (t_cs / 2) + p->IOBursts[0];
-    p->IOBursts.erase(p->IOBursts.begin());
-}
 
 void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
     // error check
