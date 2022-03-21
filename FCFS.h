@@ -6,6 +6,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <iomanip>
 #include "functions.h"
 using namespace std;
 
@@ -20,6 +21,16 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
 
     int clock = 0;
 
+    // time calculations
+    double average_CPUBurst_time = 0.0;
+    double average_wait_time = 0.0;
+    double average_turnaround_time = 0.0;
+    int total_preemptions = 0;
+    double CPU_utilization = 0.0;
+    int totalCPUBurst = 0;
+    int totalWait = 0;
+    int totalTurnAround = 0;
+
     vector<Process*> readyQ;
     map<int, vector<Process*> > waitingMap;
     // key is the IO bust end time i-e time for next interesting event
@@ -28,7 +39,11 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
         Process *p = new Process();
         p->copy(processes[i]);
         processesVector.push_back(p);
+        totalCPUBurst += processes[i]->CPUBursts.size();
+        average_CPUBurst_time += calculateAverageCPUBurst(processes[i]);
     }
+
+    average_CPUBurst_time = average_CPUBurst_time / totalCPUBurst;
 
     sort(processesVector.begin(), processesVector.end(), shortestArrival());
 
@@ -64,11 +79,17 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
             printf("time %dms: Process %c started using the CPU for %dms burst ", clock,
                    usingCPU->name, usingCPU->CPUBursts[0]);
             printQueue(readyQ);
+
+            // cpu utilization calculation
+            CPU_utilization += (clock - usingCPU->CPUBursts[0]);
+
+
             updateOnCPUEntry(usingCPU, clock, t_cs);
             // release the CPU after contextSwitch
             releaseCPU = clock + usingCPU->time_for_next_interesting_event;
             contextSwitch = false;
             contextSwitchingIn = NULL;
+
         }
 
         // CPU Burst completion
@@ -95,6 +116,10 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
                     printQueue(readyQ);
                     contextSwitchUntil = clock + (t_cs / 2);
 
+                    // add to turn around time
+                    totalTurnAround += 1;
+                    average_turnaround_time += (contextSwitchUntil - contextSwitchingOut->arrived_readyQ);
+
                     // add to waiting map
                     waitingMap[contextSwitchingOut->time_for_next_interesting_event].push_back(contextSwitchingOut);
                     usingCPU = NULL;
@@ -114,6 +139,10 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Terminated";
                     contextSwitchUntil = clock + (t_cs / 2);
+
+                    // add to turn around time
+                    totalTurnAround += 1;
+                    average_turnaround_time += (contextSwitchUntil - contextSwitchingOut->arrived_readyQ);
 
                     // Release CPU
                     CPUActive = false;
@@ -172,10 +201,24 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
             contextSwitchUntil = clock + (t_cs/2);
             // remove from readyQ
             readyQ.erase(readyQ.begin());
+            average_wait_time += double(clock - contextSwitchingIn->arrived_readyQ);
+            totalWait += 1;
         }
 
         clock++;
     }
+    cout.precision(3);
+
+//    cout << std::fixed << std::setprecision(3) << "Average CPU Burst Time " << average_CPUBurst_time << endl;
+//    cout << std::fixed << std::setprecision(4) << "Average Wait Time " << average_wait_time/totalWait << endl;
+//    printf("Average Turn Around Time %.4f\n", average_turnaround_time/double(totalTurnAround));
 //    cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
+//    printf("Total preemptions %d\n", total_preemptions);
+
+    printf("Average CPU Burst Time %.3f\n", average_CPUBurst_time);
+    printf("Average Wait Time %.3f\n", average_wait_time/double(totalWait));
+    printf("Average Turn Around Time %.3f\n", average_turnaround_time/double(totalTurnAround));
+    cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
+    printf("Total preemptions %d\n", total_preemptions);
 }
 
