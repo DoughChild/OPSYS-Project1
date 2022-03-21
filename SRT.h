@@ -215,12 +215,15 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                 //printf("I/O queue has size %lu\n", IO_q.size());
                 if (printing) {
                     if (cur_process != NULL) {
-                        if (waiting_process->tau_remaining < cur_process->tau_remaining) {
+                        if (waiting_process->tau_remaining <= cur_process->tau_remaining) {
                             printf("time %dms: Process %c (tau %dms) completed I/O; preempting %c ", time_cur, waiting_process->name, waiting_process->tau, cur_process->name);
                             waiting_process->will_preempt = false;
                         } else {
                             printf("time %dms: Process %c (tau %dms) completed I/O; added to ready queue ", time_cur, waiting_process->name, waiting_process->tau);
                         }
+                        // if (time_cur == 523551) {
+                        //     printf("%c's remaining tau is %dms, and %c's remaining tau is %dms\n", waiting_process->name, waiting_process->tau_remaining, cur_process->name, cur_process->tau_remaining);
+                        // }
                     } else if (cswitch_process != NULL) {
                         if (waiting_process->tau_remaining < cswitch_process->tau_remaining) {
                             waiting_process->will_preempt = true;
@@ -287,7 +290,7 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
             /* check if first process can preempt by comparing remaining tau for each process
             * preemption should also only occur when there is no context switch occuring
             * If the estimate (tau) of the current process was too short, we won't ever preempt */
-            else if (ready_q.front()->tau_remaining < cur_process->tau_remaining)
+            else if (ready_q.front()->tau_remaining <= cur_process->tau_remaining)
             {
                 // printf("time %dms: Preempting\n", time_cur);
                 // printf("top of ready queue (%c) remaining tau time: %d\n", ready_q.top()->name, ready_q.top()->tau_remaining);
