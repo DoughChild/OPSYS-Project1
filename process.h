@@ -23,6 +23,7 @@ class Process {
 
         bool in_rq;
         bool preempted;
+        bool will_preempt;
 
         /* will pop CPU and I/O bursts that have finished */
         deque<int> CPUBursts;
