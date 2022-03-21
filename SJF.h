@@ -18,6 +18,17 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
         return;
     }
 
+    // time calculations
+    double average_CPUBurst_time = 0.0;
+    double average_wait_time = 0.0;
+    double average_turnaround_time = 0.0;
+    int total_preemptions = 0;
+    double CPU_utilization = 0.0;
+    int totalCPUBurst = 0;
+    int totalWait = 0;
+    int totalTurnAround = 0;
+
+
     int clock = 0;
 
     vector<Process*> readyQ;
@@ -28,7 +39,10 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
         Process *p = new Process();
         p->copy(processes[i]);
         processesVector.push_back(p);
+        totalCPUBurst += processes[i]->CPUBursts.size();
+        average_CPUBurst_time += calculateAverageCPUBurst(processes[i]);
     }
+    average_CPUBurst_time = average_CPUBurst_time / totalCPUBurst;
 
     sort(processesVector.begin(), processesVector.end(), shortestArrival());
 
@@ -101,6 +115,10 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
                     printQueue(readyQ);
                     contextSwitchUntil = clock + (t_cs / 2);
 
+                    // add to turn around time
+                    totalTurnAround += 1;
+                    average_turnaround_time += (contextSwitchUntil - contextSwitchingOut->arrived_readyQ);
+
                     // add to waiting map
                     waitingMap[contextSwitchingOut->time_for_next_interesting_event].push_back(contextSwitchingOut);
                     usingCPU = NULL;
@@ -120,6 +138,9 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Terminated";
                     contextSwitchUntil = clock + (t_cs / 2);
+                    // add to turn around time
+                    totalTurnAround += 1;
+                    average_turnaround_time += (contextSwitchUntil - contextSwitchingOut->arrived_readyQ);
 
                     // Release CPU
                     CPUActive = false;
@@ -181,10 +202,20 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
             contextSwitchUntil = clock + (t_cs/2);
             // remove from readyQ
             readyQ.erase(readyQ.begin());
+            // Calculate wait time
+            // wait time = clock - in_rq
+            average_wait_time += double(clock - contextSwitchingIn->arrived_readyQ);
+            totalWait += 1;
         }
 
         clock++;
     }
-//    cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
+    cout.precision(3);
+
+    printf("Average CPU Burst Time %.3f\n", average_CPUBurst_time);
+    printf("Average Wait Time %.4f\n", average_wait_time/double(totalWait));
+    printf("Average Turn Around Time %.4f\n", average_turnaround_time/double(totalTurnAround));
+    cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
+    printf("Total preemptions %d\n", total_preemptions);
 }
 
