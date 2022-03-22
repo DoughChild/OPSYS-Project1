@@ -49,6 +49,7 @@
 
 //#include "Process.h"
 #include "SRT.h"
+#include "FCFS.h"
 
 using namespace std;
 
@@ -169,7 +170,7 @@ int main(int argc, char *argv[])
         }
 
         //printf("length of CPU bursts: %lu, length of I/O bursts: %lu\n", processes[1]->CPUBursts.size(), processes[1]->IOBursts.size());
-        SRT(processes, tau, t_cs, alpha);
+        FCFS(processes, t_cs);
 
 
 
