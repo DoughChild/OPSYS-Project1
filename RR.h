@@ -33,7 +33,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
     double average_wait_time = 0.0;
     double average_turnaround_time = 0.0;
     int total_preemptions = 0;
-    double CPU_utilization = 0.0;
+    //double CPU_utilization = 0.0;
     int totalCPUBurst = 0;
     int totalWait = 0;
     int totalTurnAround = 0;
@@ -42,7 +42,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
     map<int, vector<Process*> > waitingMap;
     // key is the IO bust end time i-e time for next interesting event
     vector<Process*> processesVector;
-    for (int i = 0; i < processes.size(); i++) {
+    for (unsigned long i = 0; i < processes.size(); i++) {
         Process *p = new Process();
         p->copy(processes[i]);
         processesVector.push_back(p);
@@ -63,10 +63,10 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
     // if CPU is in use
     bool CPUActive = false;
     // clock time when a CPU is released and starts context switching for next process
-    int releaseCPU = 0;
+    //int releaseCPU = 0;
 
     // context switch counts
-    bool contextSwitch = false; // if any process is currently context switching
+    //bool contextSwitch = false; // if any process is currently context switching
     Process* contextSwitchingIn = NULL; // process which is currently context switching in the CPU
     Process* contextSwitchingOut = NULL; // process which is currently context switching out the CPU
     int contextSwitchUntil = -99999999; // until which time a process is context switching in or out
@@ -102,7 +102,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
                        preempt->cs_time_left);
                 printQueue(readyQ);
                 contextSwitchingOut = preempt;
-                contextSwitch = true;
+                //contextSwitch = true;
 
                 total_preemptions += 1;
                 contextSwitchingOut->time_for_next_interesting_event = clock + (t_cs / 2);
@@ -111,7 +111,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
 
                 // release CPU
                 CPUActive = false;
-                releaseCPU = clock;
+                //releaseCPU = clock;
                 usingCPU = NULL;
             }
 
@@ -158,8 +158,8 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
 
 //            updateOnCPUEntry(usingCPU, clock, t_cs);
             // release the CPU after contextSwitch
-            releaseCPU = clock + usingCPU->time_for_next_interesting_event;
-            contextSwitch = false;
+            //releaseCPU = clock + usingCPU->time_for_next_interesting_event;
+            //contextSwitch = false;
             contextSwitchingIn = NULL;
 
         }
@@ -179,7 +179,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
                     printQueue(readyQ);
 
                     // CONTEXT SWITCH OUT OF CPU
-                    contextSwitch = true;
+                    //contextSwitch = true;
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Waiting";
                     updateOnSwitchOutOfCPU(contextSwitchingOut, clock, t_cs);
@@ -198,7 +198,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
 
                     // Release CPU
                     CPUActive = false;
-                    releaseCPU = clock;
+                    //releaseCPU = clock;
                 }
                 else {
                     // the process terminates
@@ -207,7 +207,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
                     completedProcess += 1;
 
                     // CONTEXT SWITCH
-                    contextSwitch = true;
+                    //contextSwitch = true;
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Terminated";
                     contextSwitchUntil = clock + (t_cs / 2);
@@ -218,7 +218,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
 
                     // Release CPU
                     CPUActive = false;
-                    releaseCPU = clock;
+                    //releaseCPU = clock;
                 }
             }
         }
@@ -228,7 +228,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
         it = waitingMap.find(clock);
         if(it != waitingMap.end()) {
             // finish IO for the processes in the list and erase the processes from waitingMap
-            for (int i = 0; i < it->second.size(); i++)  {
+            for (unsigned long i = 0; i < it->second.size(); i++)  {
                 // finished IO
                 // re-enter the readyQ
                 Process * temp2 = it->second[i];
@@ -252,7 +252,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
         vector<Process*> arrivedProcesses;
         arrivedProcesses = processArrived(processesVector, clock);
         if (arrivedProcesses.size() > 0) {
-            for (int i = 0; i < arrivedProcesses.size(); i++) {
+            for (unsigned long i = 0; i < arrivedProcesses.size(); i++) {
                 arrivedProcesses[i]->arrived_readyQ = clock;
                 arrivedProcesses[i]->in_rq = true;
                 readyQ.push_back(arrivedProcesses[i]);
@@ -280,7 +280,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
         // if readyQ is not empty, CPU is not active, and if no process is contextSwitching
         if (readyQ.size() > 0  && !CPUActive && contextSwitchUntil <= clock && !addPreemptedProcessToReadyQ) {
             contextSwitchingIn = readyQ.at(0);
-            contextSwitch = true;
+            //contextSwitch = true;
             contextSwitchUntil = clock + (t_cs/2);
             // remove from readyQ
             readyQ.erase(readyQ.begin());
