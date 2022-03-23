@@ -1,10 +1,4 @@
 //
-// Created by Iffat Nafisa on 3/22/22.
-//
-
-#ifndef CPUSCHEDULING_RR_H
-#define CPUSCHEDULING_RR_H
-//
 // Created by Iffat Nafisa on 3/15/22.
 //
 //#include "process.h"
@@ -12,12 +6,10 @@
 #include <iostream>
 #include <map>
 #include <set>
-#include <iomanip>
 #include "functions.h"
-
 using namespace std;
 
-void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
+void SJF(deque<Process*> processes, int t_cs, double alpha) {
     // error check
     if (processes.size() == 0) {
         return;
@@ -25,9 +17,6 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
     if (t_cs < 0 || alpha < 0) {
         return;
     }
-
-    int clock = 0;
-    int totalPrint = 999;
 
     // time calculations
     double average_CPUBurst_time = 0.0;
@@ -37,7 +26,10 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
     int totalCPUBurst = 0;
     int totalWait = 0;
     int totalTurnAround = 0;
-    map<char, int> arrivalTimeMap;
+
+
+    int clock = 0;
+    int totalPrint = 999;
 
     vector<Process*> readyQ;
     map<int, vector<Process*> > waitingMap;
@@ -49,7 +41,6 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
         average_CPUBurst_time += calculateAverageCPUBurst(processes[i]);
     }
 
-
     sort(processesVector.begin(), processesVector.end(), shortestArrival());
 
     // count for processes completed
@@ -60,7 +51,6 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
     Process* usingCPU = NULL;
     // if CPU is in use
     bool CPUActive = false;
-    // clock time when a CPU is released and starts context switching for next process
 
     // context switch counts
     Process* contextSwitchingIn = NULL; // process which is currently context switching in the CPU
@@ -68,103 +58,24 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
     int contextSwitchUntil = -99999999; // until which time a process is context switching in or out
     int contextSwitchCount = 0; // total number of context switches
 
-    // preemption
-    Process* preempt = NULL; // process that needs to be preempted
-    int preemptAt = -99999999; // when to preempt
-    bool addPreemptedProcessToReadyQ = false;
-
     // start of simulation
-    printf("time %dms: Simulator started for RR with time slice %dms [Q empty]\n", clock, t_slice);
+    printf("time %dms: Simulator started for SJF [Q empty]\n", clock);
 
     while (true) {
-
-        // check for preemption
-        if (preemptAt == clock) {
-            if (readyQ.empty()) {
-                if (clock <= totalPrint) {
-                    printf("time %dms: Time slice expired; no preemption because ready queue is empty [Q empty]\n", clock);
-                }
-
-                // check if the process needs to be preempted
-                usingCPU->cs_time_left = usingCPU->cs_time_left - t_slice;
-                if (usingCPU->cs_time_left > t_slice) {
-                    preemptAt = clock + t_slice;
-                    preempt = usingCPU;
-                }
-            }
-            else {
-                preempt = usingCPU;
-
-                preempt->cs_time_left = preempt->cs_time_left - t_slice;
-                preempt->preempted = true;
-                if (clock <= totalPrint) {
-                    printf("time %dms: Time slice expired; process %c preempted with %dms to go ", clock, preempt->name,
-                           preempt->cs_time_left);
-                    printQueue(readyQ);
-                }
-
-                contextSwitchingOut = preempt;
-
-                total_preemptions += 1;
-                contextSwitchingOut->time_for_next_interesting_event = clock + (t_cs / 2);
-                contextSwitchUntil = clock + (t_cs / 2);
-                addPreemptedProcessToReadyQ = true;
-
-                // release CPU
-                CPUActive = false;
-                usingCPU = NULL;
-            }
-
-        }
-
-
-
         // check if any process can start using the CPU
         if (!CPUActive && contextSwitchUntil <= clock && contextSwitchingIn != NULL) {
             // process contextSwitchingIn should enter the CPU
             CPUActive = true;
             contextSwitchCount += 1;
             usingCPU = contextSwitchingIn;
-
-            int burstTime = 0;
-
-            // check if it is a preempted process
-            if (usingCPU->preempted) {
-                if (clock <= totalPrint) {
-                    printf("time %dms: Process %c started using the CPU for remaining %dms of %dms burst ", clock,
-                           usingCPU->name, usingCPU->cs_time_left, usingCPU->cur_CPUBurst);
-                    printQueue(readyQ);
-                }
-
-                burstTime = usingCPU->cs_time_left;
-
-                double waitTime = clock - usingCPU->arrived_readyQ - double(t_cs / 2.0);
-                usingCPU->wait_time += waitTime;
-                usingCPU->time_for_next_interesting_event = clock + usingCPU->cs_time_left;
-
+            if (clock <= totalPrint) {
+                printf("time %dms: Process %c (tau %dms) started using the CPU for %dms burst ", clock,
+                       usingCPU->name, usingCPU->tau, usingCPU->CPUBursts[0]);
+                printQueue(readyQ);
             }
-            else {
-                if (clock <= totalPrint) {
-                    printf("time %dms: Process %c started using the CPU for %dms burst ", clock,
-                           usingCPU->name, usingCPU->CPUBursts[0]);
-                    printQueue(readyQ);
-                }
-
-                burstTime = usingCPU->CPUBursts[0];
-                updateOnCPUEntry(usingCPU, clock, t_cs);
-            }
-
-
-            // check if the process needs to be preempted
-            if (burstTime > t_slice) {
-                preemptAt = clock + t_slice;
-                preempt = usingCPU;
-            }
-
-//            updateOnCPUEntry(usingCPU, clock, t_cs);
+            updateOnCPUEntry(usingCPU, clock, t_cs);
             // release the CPU after contextSwitch
             contextSwitchingIn = NULL;
-
         }
 
         // CPU Burst completion
@@ -174,14 +85,25 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
                 if (usingCPU->CPUBursts.size() > 0) {
                     if (clock <= totalPrint) {
                         if (usingCPU->CPUBursts.size() == 1) {
-                            printf("time %dms: Process %c completed a CPU burst; %lu burst to go ", clock,
-                                   usingCPU->name, usingCPU->CPUBursts.size());
+                            printf("time %dms: Process %c (tau %dms) completed a CPU burst; %lu burst to go ", clock,
+                                   usingCPU->name, usingCPU->tau, usingCPU->CPUBursts.size());
                         } else {
-                            printf("time %dms: Process %c completed a CPU burst; %lu bursts to go ", clock,
-                                   usingCPU->name, usingCPU->CPUBursts.size());
+                            printf("time %dms: Process %c (tau %dms) completed a CPU burst; %lu bursts to go ", clock,
+                                   usingCPU->name, usingCPU->tau, usingCPU->CPUBursts.size());
                         }
                         printQueue(readyQ);
                     }
+
+
+                    // recalculate Tau
+                    int newTau = calc_tau(usingCPU->tau, usingCPU->cur_CPUBurst, alpha);
+                    if (clock <= totalPrint) {
+                        printf("time %dms: Recalculated tau from %dms to %dms for process %c ", clock, usingCPU->tau
+                                , newTau, usingCPU->name);
+                        printQueue(readyQ);
+                    }
+
+                    usingCPU->tau = newTau;
 
 
                     // CONTEXT SWITCH OUT OF CPU
@@ -197,7 +119,7 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
 
                     // add to turn around time
                     totalTurnAround += 1;
-                    average_turnaround_time += (contextSwitchUntil - arrivalTimeMap[contextSwitchingOut->name]);
+                    average_turnaround_time += (contextSwitchUntil - contextSwitchingOut->arrived_readyQ);
 
                     // add to waiting map
                     waitingMap[contextSwitchingOut->time_for_next_interesting_event].push_back(contextSwitchingOut);
@@ -215,10 +137,9 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
                     // CONTEXT SWITCH
                     contextSwitchingOut = usingCPU;
                     contextSwitchUntil = clock + (t_cs / 2);
-
                     // add to turn around time
                     totalTurnAround += 1;
-                    average_turnaround_time += (contextSwitchUntil - arrivalTimeMap[contextSwitchingOut->name]);
+                    average_turnaround_time += (contextSwitchUntil - contextSwitchingOut->arrived_readyQ);
 
                     // Release CPU
                     CPUActive = false;
@@ -236,16 +157,13 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
                 // re-enter the readyQ
                 Process * temp2 = it->second[i];
                 temp2->arrived_readyQ = clock;
-                arrivalTimeMap[temp2->name] = clock;
                 temp2->in_rq = true;
-
-                // reset preemption status
-                temp2->preempted = false;
-
                 // Push to readyQ and sort
                 readyQ.push_back(temp2);
+                sort(readyQ.begin(), readyQ.end(), shortestJob());
                 if (clock <= totalPrint) {
-                    printf("time %dms: Process %c completed I/O; added to ready queue ", clock, temp2->name);
+                    printf("time %dms: Process %c (tau %dms) completed I/O; added to ready queue ", clock, temp2->name ,
+                           temp2->tau);
                     printQueue(readyQ);
                 }
 
@@ -260,50 +178,43 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
         if (arrivedProcesses.size() > 0) {
             for (unsigned long i = 0; i < arrivedProcesses.size(); i++) {
                 arrivedProcesses[i]->arrived_readyQ = clock;
-                arrivalTimeMap[arrivedProcesses[i]->name] = clock;
                 arrivedProcesses[i]->in_rq = true;
                 readyQ.push_back(arrivedProcesses[i]);
+                sort(readyQ.begin(), readyQ.end(), shortestJob());
                 if (clock <= totalPrint) {
-                    printf("time %dms: Process %c arrived; added to ready queue ", clock,
-                           arrivedProcesses[i]->name);
+                    printf("time %dms: Process %c (tau %dms) arrived; added to ready queue ", clock,
+                           arrivedProcesses[i]->name, arrivedProcesses[i]->tau);
                     printQueue(readyQ);
                 }
 
             }
         }
 
-        // add preempted process to the readyQ
-        if (addPreemptedProcessToReadyQ && contextSwitchUntil <= clock) {
-            preempt->arrived_readyQ = clock;
-            readyQ.push_back(preempt);
-            preempt = NULL;
-            addPreemptedProcessToReadyQ = false;
-        }
-
         if (numProcesses == completedProcess) {
             clock += (t_cs / 2);
-            printf("time %dms: Simulator ended for RR ", clock);
+            printf("time %dms: Simulator ended for SJF ", clock);
             printQueue(readyQ);
             break;
         }
 
         // CONTEXT SWITCH IN
         // if readyQ is not empty, CPU is not active, and if no process is contextSwitching
-        if (readyQ.size() > 0  && !CPUActive && contextSwitchUntil <= clock && !addPreemptedProcessToReadyQ) {
+        if (readyQ.size() > 0  && !CPUActive && contextSwitchUntil <= clock) {
             contextSwitchingIn = readyQ.at(0);
             contextSwitchUntil = clock + (t_cs/2);
             // remove from readyQ
             readyQ.erase(readyQ.begin());
+            // Calculate wait time
+            // wait time = clock - in_rq
             average_wait_time += double(clock - contextSwitchingIn->arrived_readyQ);
             totalWait += 1;
         }
-
 
         clock++;
     }
     FILE *fp;
     fp = fopen("simout.txt","a");
-    fprintf(fp, "Algorithm RR\n");
+    fprintf(fp, "Algorithm SJF\n");
     fprintf(fp, "-- average CPU burst time: %.3f ms\n", ceil(average_CPUBurst_time/ double(totalCPUBurst) * 1000)/1000);
     fprintf(fp, "-- average wait time: %.3f ms\n", ceil(average_wait_time/double(totalCPUBurst) * 1000) / 1000);
     fprintf(fp, "-- average turnaround time: %.3f ms\n", ceil(average_turnaround_time/double(totalCPUBurst) * 1000)/ 1000);
@@ -313,5 +224,3 @@ void RR(deque<Process*> processes, int t_cs, double alpha, int t_slice) {
     fclose(fp);
 }
 
-
-#endif //CPUSCHEDULING_RR_H

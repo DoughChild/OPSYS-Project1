@@ -8,14 +8,14 @@
 #include <queue>
 #include <set>
 #include <algorithm>
+#include "functions.h"
 
-#include "Process.h"
-#include "tau_calc.h"
-
-#define DISPLAY_MAX_T false
+//#include "Process.h"
+//#include "tau_calc.h"
 
 
-struct CompareProcess
+
+struct CompareTau
 {
     bool operator()(Process *p1, Process *p2)
     {
@@ -31,7 +31,7 @@ struct CompareProcess
 };
 
 
-void printQueue (deque<Process*> rq) {
+void printQ (deque<Process*> rq) {
     cout << "[Q ";
     if (rq.size() == 0) {
         cout << "empty]" << endl;
@@ -45,11 +45,14 @@ void printQueue (deque<Process*> rq) {
 
 
 
-void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
+void SRT(deque<Process *> processes, int t_cs, double alpha)
 {
-    /* before popping values from processes in the list, measure
-     * CPU utilization from unaltered list. This will prevent us
-     * from having to use additional variables etc */
+    // deque<Process *> processes;
+    // for (unsigned long i = 0; i < processesList.size(); i++) {
+    //     Process *p = new Process();
+    //     p->copy(processesList[i]);
+    //     processes.push_back(p);
+    // }
 
     // need these values to calculate averages
     //int num_processes = (int)processes.size();
@@ -85,14 +88,17 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                     if (printing) {
                         if (cswitch_process->preempted && (cswitch_process->CPUBursts.front() != cswitch_process->cur_CPUBurst)) {
                             printf("time %dms: Process %c (tau %dms) started using the CPU for remaining %dms of %dms burst ", time_cur, cswitch_process->name, cswitch_process->tau, cswitch_process->CPUBursts.front(), cswitch_process->cur_CPUBurst);
-                            cswitch_process->turnaround_time += t_cs;
                         } else {
                             printf("time %dms: Process %c (tau %dms) started using the CPU for %dms burst ", time_cur, cswitch_process->name, cswitch_process->tau, cswitch_process->CPUBursts.front());
-                            // increment turnaround time by cur_CPU_burst
-                            cswitch_process->turnaround_time += cswitch_process->cur_CPUBurst;
-                            cswitch_process->turnaround_time += t_cs;
+
                         }
-                        printQueue(ready_q);
+                        printQ(ready_q);
+                    }
+                    if (cswitch_process->preempted && (cswitch_process->CPUBursts.front() != cswitch_process->cur_CPUBurst)) {
+                        cswitch_process->turnaround_time += t_cs;
+                    } else {
+                        cswitch_process->turnaround_time += cswitch_process->cur_CPUBurst;
+                        cswitch_process->turnaround_time += t_cs;
                     }
                     cswitch_process->CPUBursts.front()--;
                     cswitch_process->tau_remaining--;
@@ -101,7 +107,7 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                     cswitch_process = NULL;
                     context_switching = false;
                 }
-                // switching process has finished its CPU burst and is going to I/O
+                    // switching process has finished its CPU burst and is going to I/O
                 else if (cswitch_process->dest == 'i') {
                     if (!cswitch_process->IOBursts.empty())
                     {
@@ -112,7 +118,7 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                         for (unsigned long i = 0; i < processes.size(); i++)
                         {
                             if (processes[i]->name == cswitch_process->name)
-                            processes.erase(processes.begin() + i);
+                                processes.erase(processes.begin() + i);
                         }
                     }
                     // after CPU burst finishes, add up to later calculate avgs
@@ -127,13 +133,13 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                     cswitch_process = NULL;
                     context_switching = false;
                 }
-                // switching process has finished its CPU burst and is going to the ready queue
+                    // switching process has finished its CPU burst and is going to the ready queue
                 else if (cswitch_process->dest == 'r') {
                     // remove the CPU process that is switching out by adding it to the ready queue
                     cswitch_process->in_rq = true;
 
                     ready_q.push_back(cswitch_process);
-                    sort(ready_q.begin(), ready_q.end(), CompareProcess());
+                    sort(ready_q.begin(), ready_q.end(), CompareTau());
 
                     // now change the process that preempted the CPU process to be switching
                     // and remove it from the ready queue
@@ -152,7 +158,7 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                 cswitch_process->cs_time_left--;
             }
         }
-        // ensures the CPU is not empty
+            // ensures the CPU is not empty
         else if (cur_process != NULL)
         {
             // If the current process is ending its burst, begin its exit from the CPU
@@ -172,13 +178,13 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                         } else {
                             printf("time %dms: Process %c (tau %dms) completed a CPU burst; %lu bursts to go ", time_cur, cur_process->name, cur_process->tau, cur_process->CPUBursts.size());
                         }
-                        printQueue(ready_q);
+                        printQ(ready_q);
                     }
                     cur_process->tau = calc_tau(cur_process->tau, cur_process->cur_CPUBurst, alpha);
                     cur_process->tau_remaining = cur_process->tau;
                     if (printing) {
                         printf("time %dms: Recalculated tau from %dms to %dms for process %c ", time_cur, old_tau, cur_process->tau, cur_process->name);
-                        printQueue(ready_q);
+                        printQ(ready_q);
                     }
                     cur_process->cur_CPUBurst = cur_process->CPUBursts.front();
                 }
@@ -191,11 +197,11 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                 if (!cur_process->IOBursts.empty()) {
                     if (printing) {
                         printf("time %dms: Process %c switching out of CPU; will block on I/O until time %dms ", time_cur, cur_process->name, block_til);
-                        printQueue(ready_q);
+                        printQ(ready_q);
                     }
                 } else {
                     printf("time %dms: Process %c terminated ", time_cur, cur_process->name);
-                    printQueue(ready_q);
+                    printQ(ready_q);
                 }
                 cswitch_process = cur_process;
                 cur_process = NULL;
@@ -234,13 +240,22 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                         printf("time %dms: Process %c (tau %dms) completed I/O; added to ready queue ", time_cur, waiting_process->name, waiting_process->tau);
                     }
                 }
+                if (cur_process != NULL) {
+                    if (waiting_process->tau_remaining <= cur_process->tau_remaining) {
+                        waiting_process->will_preempt = false;
+                    }
+                } else if (cswitch_process != NULL) {
+                    if (waiting_process->tau_remaining < cswitch_process->tau_remaining) {
+                        waiting_process->will_preempt = true;
+                    }
+                }
                 waiting_process->IOBursts.pop_front();
                 waiting_process->in_rq = true;
 
                 ready_q.push_back(waiting_process);
-                sort(ready_q.begin(), ready_q.end(), CompareProcess());
+                sort(ready_q.begin(), ready_q.end(), CompareTau());
                 if (printing) {
-                    printQueue(ready_q);   
+                    printQ(ready_q);
                 }
 
                 // we only want to remove that i'th element
@@ -264,11 +279,11 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                 arriving_process->in_rq = true;
 
                 ready_q.push_back(arriving_process);
-                sort(ready_q.begin(), ready_q.end(), CompareProcess());
+                sort(ready_q.begin(), ready_q.end(), CompareTau());
 
                 if (printing) {
                     printf("time %dms: Process %c (tau %dms) arrived; added to ready queue ", time_cur, arriving_process->name, arriving_process->tau);
-                    printQueue(ready_q);
+                    printQ(ready_q);
                 }
             }
         }
@@ -287,9 +302,9 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                 cs_count++;
                 cswitch_process->dest = 'c';
             }
-            /* check if first process can preempt by comparing remaining tau for each process
-            * preemption should also only occur when there is no context switch occuring
-            * If the estimate (tau) of the current process was too short, we won't ever preempt */
+                /* check if first process can preempt by comparing remaining tau for each process
+                * preemption should also only occur when there is no context switch occuring
+                * If the estimate (tau) of the current process was too short, we won't ever preempt */
             else if (ready_q.front()->tau_remaining <= cur_process->tau_remaining)
             {
                 // printf("time %dms: Preempting\n", time_cur);
@@ -298,7 +313,10 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
                 Process * p = ready_q.front();
                 if (p->will_preempt && printing) {
                     printf("time %dms: Process %c (tau %dms) will preempt %c ", time_cur, p->name, p->tau, cur_process->name);
-                    printQueue(ready_q);
+                    printQ(ready_q);
+                    p->will_preempt = false;
+                }
+                else if (p->will_preempt) {
                     p->will_preempt = false;
                 }
 
@@ -332,12 +350,12 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
         if (processes.empty())
         {
             printf("time %dms: Simulator ended for SRT ", time_cur);
-            printQueue(ready_q);
+            printQ(ready_q);
             simulating = false;
         } else {
             // the most important single line of code
             time_cur++;
-            if (time_cur >= 1000 && !DISPLAY_MAX_T) {
+            if (time_cur > 1000) {//} && !DISPLAY_MAX_T) {
                 printing = false;
             }
         }
@@ -347,23 +365,16 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
     avg_wait = ceil(((double)sum_wait / (double)num_CPU_bursts) * 1000) / 1000;
     avg_turnaround = ceil(((double)sum_turnaround / (double)num_CPU_bursts) * 1000) / 1000;
     CPU_util = ceil(((double)sum_burst_time / (double)time_cur) * 100000) / 1000;
-    // printf("Average CPU burst time: %.3f ms\n", avg_burst);
-    // printf("Average wait time: %.3f ms\n", avg_wait);
-    // printf("Average turnaround time: %.3f ms\n", avg_turnaround);
-    // printf("number of total CPU bursts: %d\n", num_CPU_bursts);
-    // printf("Total number of context switches: %d\n", cs_count);
-    // printf("Total number of preemptions: %d\n", preempt_count);
-    // printf("CPU Utilization: %.3f%%\n", CPU_util);
 
-    ofstream file;
-    file.open("simout.txt", std::fstream::trunc | std::fstream::out);
-    file << "Algorithm SRT\n";
-    file << "-- average CPU burst time: " << avg_burst << " ms\n";
-    file << "-- average wait time: " << avg_wait << " ms\n";
-    file << "-- average turnaround time: " << avg_turnaround << " ms\n";
-    file << "-- total number of context switches: " << cs_count << "\n";
-    file << "-- total number preemptions: " << preempt_count << "\n";
-    file << "-- CPU utilization: " << CPU_util << "%\n";
-    file.close();
+    FILE * file;
+    file = fopen ("simout.txt", "a");
+    fprintf(file, "Algorithm SRT\n");
+    fprintf(file, "-- average CPU burst time: %.3f ms\n", avg_burst);
+    fprintf(file, "-- average wait time: %.3f ms\n", avg_wait);
+    fprintf(file, "-- average turnaround time: %.3f ms\n", avg_turnaround);
+    fprintf(file, "-- total number of context switches: %d\n", cs_count);
+    fprintf(file, "-- total number of preemptions: %d\n", preempt_count);
+    fprintf(file, "-- CPU utilization: %.3f%%\n", CPU_util);
+    fclose( file );
 
 }

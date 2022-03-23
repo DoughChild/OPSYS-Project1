@@ -1,7 +1,7 @@
 #include <vector>
 #include <string>
 #include <queue>
-
+#include <iostream>
 using namespace std;
 
 class Process {
@@ -11,16 +11,16 @@ class Process {
         int t_arrival;
         int tau;
         int tau_remaining;
-        int wait_time;
+        double wait_time;
         int turnaround_time;
         int cur_CPUBurst;
-        int cur_IOBurst;
         int cs_time_left;
-        // r for ready queue, i for I/O, c for CPU
-        char dest;
-        bool in_cs;
-        bool out_cs;
+        int arrived_readyQ;
+        int time_for_next_interesting_event;
 
+        char dest;
+
+        //bool in_rq;
         bool in_rq;
         bool preempted;
         bool will_preempt;
@@ -28,4 +28,5 @@ class Process {
         /* will pop CPU and I/O bursts that have finished */
         deque<int> CPUBursts;
         deque<int> IOBursts;
+
 };
