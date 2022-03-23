@@ -23,26 +23,23 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
     double average_wait_time = 0.0;
     double average_turnaround_time = 0.0;
     int total_preemptions = 0;
-    double CPU_utilization = 0.0;
     int totalCPUBurst = 0;
     int totalWait = 0;
     int totalTurnAround = 0;
 
 
     int clock = 0;
+    int totalPrint = 999;
 
     vector<Process*> readyQ;
     map<int, vector<Process*> > waitingMap;
     // key is the IO bust end time i-e time for next interesting event
     vector<Process*> processesVector;
     for (int i = 0; i < processes.size(); i++) {
-        Process *p = new Process();
-        p->copy(processes[i]);
-        processesVector.push_back(p);
+        processesVector.push_back(processes[i]);
         totalCPUBurst += processes[i]->CPUBursts.size();
         average_CPUBurst_time += calculateAverageCPUBurst(processes[i]);
     }
-    average_CPUBurst_time = average_CPUBurst_time / totalCPUBurst;
 
     sort(processesVector.begin(), processesVector.end(), shortestArrival());
 
@@ -54,11 +51,8 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
     Process* usingCPU = NULL;
     // if CPU is in use
     bool CPUActive = false;
-    // clock time when a CPU is released and starts context switching for next process
-    int releaseCPU = 0;
 
     // context switch counts
-    bool contextSwitch = false; // if any process is currently context switching
     Process* contextSwitchingIn = NULL; // process which is currently context switching in the CPU
     Process* contextSwitchingOut = NULL; // process which is currently context switching out the CPU
     int contextSwitchUntil = -99999999; // until which time a process is context switching in or out
@@ -75,13 +69,13 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
             CPUActive = true;
             contextSwitchCount += 1;
             usingCPU = contextSwitchingIn;
-            printf("time %dms: Process %c (tau %dms) started using the CPU for %dms burst ", clock,
-                   usingCPU->name, usingCPU->tau, usingCPU->CPUBursts[0]);
-            printQueue(readyQ);
+            if (clock <= totalPrint) {
+                printf("time %dms: Process %c (tau %dms) started using the CPU for %dms burst ", clock,
+                       usingCPU->name, usingCPU->tau, usingCPU->CPUBursts[0]);
+                printQueue(readyQ);
+            }
             updateOnCPUEntry(usingCPU, clock, t_cs);
             // release the CPU after contextSwitch
-            releaseCPU = clock + usingCPU->time_for_next_interesting_event;
-            contextSwitch = false;
             contextSwitchingIn = NULL;
         }
 
@@ -90,29 +84,39 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
             if(usingCPU->time_for_next_interesting_event == clock) {
                 // check if any CPU Burst left
                 if (usingCPU->CPUBursts.size() > 0) {
-                    if (usingCPU->CPUBursts.size() == 1) {
-                        printf("time %dms: Process %c (tau %dms) completed a CPU burst; %lu burst to go ", clock,
-                               usingCPU->name, usingCPU->tau, usingCPU->CPUBursts.size());
+                    if (clock <= totalPrint) {
+                        if (usingCPU->CPUBursts.size() == 1) {
+                            printf("time %dms: Process %c (tau %dms) completed a CPU burst; %lu burst to go ", clock,
+                                   usingCPU->name, usingCPU->tau, usingCPU->CPUBursts.size());
                         } else {
-                        printf("time %dms: Process %c (tau %dms) completed a CPU burst; %lu bursts to go ", clock,
-                               usingCPU->name, usingCPU->tau, usingCPU->CPUBursts.size());
+                            printf("time %dms: Process %c (tau %dms) completed a CPU burst; %lu bursts to go ", clock,
+                                   usingCPU->name, usingCPU->tau, usingCPU->CPUBursts.size());
+                        }
+                        printQueue(readyQ);
                     }
-                    printQueue(readyQ);
+
+
                     // recalculate Tau
                     int newTau = calc_tau(usingCPU->tau, usingCPU->cur_CPUBurst, alpha);
-                    printf("time %dms: Recalculated tau from %dms to %dms for process %c ", clock, usingCPU->tau
-                            , newTau, usingCPU->name);
+                    if (clock <= totalPrint) {
+                        printf("time %dms: Recalculated tau from %dms to %dms for process %c ", clock, usingCPU->tau
+                                , newTau, usingCPU->name);
+                        printQueue(readyQ);
+                    }
+
                     usingCPU->tau = newTau;
-                    printQueue(readyQ);
+
 
                     // CONTEXT SWITCH OUT OF CPU
-                    contextSwitch = true;
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Waiting";
                     updateOnSwitchOutOfCPU(contextSwitchingOut, clock, t_cs);
-                    printf("time %dms: Process %c switching out of CPU; will block on I/O until time %dms ", clock, usingCPU->name,
-                           usingCPU->time_for_next_interesting_event);
-                    printQueue(readyQ);
+                    if (clock <= totalPrint) {
+                        printf("time %dms: Process %c switching out of CPU; will block on I/O until time %dms ", clock, usingCPU->name,
+                               usingCPU->time_for_next_interesting_event);
+                        printQueue(readyQ);
+                    }
+
                     contextSwitchUntil = clock + (t_cs / 2);
 
                     // add to turn around time
@@ -125,7 +129,6 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
 
                     // Release CPU
                     CPUActive = false;
-                    releaseCPU = clock;
                 }
                 else {
                     // the process terminates
@@ -134,7 +137,6 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
                     completedProcess += 1;
 
                     // CONTEXT SWITCH
-                    contextSwitch = true;
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Terminated";
                     contextSwitchUntil = clock + (t_cs / 2);
@@ -144,7 +146,6 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
 
                     // Release CPU
                     CPUActive = false;
-                    releaseCPU = clock;
                 }
             }
         }
@@ -164,9 +165,12 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
                 // Push to readyQ and sort
                 readyQ.push_back(temp2);
                 sort(readyQ.begin(), readyQ.end(), shortestJob());
-                printf("time %dms: Process %c (tau %dms) completed I/O; added to ready queue ", clock, temp2->name ,
-                       temp2->tau);
-                printQueue(readyQ);
+                if (clock <= totalPrint) {
+                    printf("time %dms: Process %c (tau %dms) completed I/O; added to ready queue ", clock, temp2->name ,
+                           temp2->tau);
+                    printQueue(readyQ);
+                }
+
             }
             // delete from waiting map
             waitingMap.erase(it);
@@ -181,9 +185,12 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
                 arrivedProcesses[i]->in_rq = true;
                 readyQ.push_back(arrivedProcesses[i]);
                 sort(readyQ.begin(), readyQ.end(), shortestJob());
-                printf("time %dms: Process %c (tau %dms) arrived; added to ready queue ", clock,
-                       arrivedProcesses[i]->name, arrivedProcesses[i]->tau);
-                printQueue(readyQ);
+                if (clock <= totalPrint) {
+                    printf("time %dms: Process %c (tau %dms) arrived; added to ready queue ", clock,
+                           arrivedProcesses[i]->name, arrivedProcesses[i]->tau);
+                    printQueue(readyQ);
+                }
+
             }
         }
 
@@ -198,7 +205,6 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
         // if readyQ is not empty, CPU is not active, and if no process is contextSwitching
         if (readyQ.size() > 0  && !CPUActive && contextSwitchUntil <= clock) {
             contextSwitchingIn = readyQ.at(0);
-            contextSwitch = true;
             contextSwitchUntil = clock + (t_cs/2);
             // remove from readyQ
             readyQ.erase(readyQ.begin());
@@ -210,12 +216,15 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
 
         clock++;
     }
-    cout.precision(3);
-
-    printf("Average CPU Burst Time %.3f\n", average_CPUBurst_time);
-    printf("Average Wait Time %.4f\n", average_wait_time/double(totalWait));
-    printf("Average Turn Around Time %.4f\n", average_turnaround_time/double(totalTurnAround));
-    cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
-    printf("Total preemptions %d\n", total_preemptions);
+    FILE *fp;
+    fp = fopen("simout.txt","a");
+    fprintf(fp, "Algorithm SJF\n");
+    fprintf(fp, "-- average CPU burst time: %.3fms\n", ceil(average_CPUBurst_time/ double(totalCPUBurst) * 1000)/1000);
+    fprintf(fp, "-- average wait time: %.3fms\n", ceil(average_wait_time/double(totalCPUBurst) * 1000) / 1000);
+    fprintf(fp, "-- average turnaround time: %.3fms\n", ceil(average_turnaround_time/double(totalCPUBurst) * 1000)/ 1000);
+    fprintf(fp, "-- total number of context switches: %d\n", contextSwitchCount);
+    fprintf(fp, "-- total number of preemptions: %d\n", total_preemptions);
+    fprintf(fp, "-- CPU utilization: %.3f%%\n", ceil(average_CPUBurst_time * 100.00 / double(clock) * 1000) / 1000);
+    fclose(fp);
 }
 

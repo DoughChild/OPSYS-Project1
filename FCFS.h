@@ -10,7 +10,7 @@
 #include "functions.h"
 using namespace std;
 
-void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
+void FCFS(deque<Process*> processes, int t_cs, double alpha) {
     // error check
     if (processes.size() == 0) {
         return;
@@ -20,7 +20,7 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
     }
 
     int clock = 0;
-
+    int totalPrint = 999;
     // time calculations
     double average_CPUBurst_time = 0.0;
     double average_wait_time = 0.0;
@@ -36,14 +36,11 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
     // key is the IO bust end time i-e time for next interesting event
     vector<Process*> processesVector;
     for (int i = 0; i < processes.size(); i++) {
-        Process *p = new Process();
-        p->copy(processes[i]);
-        processesVector.push_back(p);
+        processesVector.push_back(processes[i]);
         totalCPUBurst += processes[i]->CPUBursts.size();
         average_CPUBurst_time += calculateAverageCPUBurst(processes[i]);
     }
 
-    average_CPUBurst_time = average_CPUBurst_time / totalCPUBurst;
 
     sort(processesVector.begin(), processesVector.end(), shortestArrival());
 
@@ -55,11 +52,8 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
     Process* usingCPU = NULL;
     // if CPU is in use
     bool CPUActive = false;
-    // clock time when a CPU is released and starts context switching for next process
-    int releaseCPU = 0;
 
     // context switch counts
-    bool contextSwitch = false; // if any process is currently context switching
     Process* contextSwitchingIn = NULL; // process which is currently context switching in the CPU
     Process* contextSwitchingOut = NULL; // process which is currently context switching out the CPU
     int contextSwitchUntil = -99999999; // until which time a process is context switching in or out
@@ -76,9 +70,12 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
             CPUActive = true;
             contextSwitchCount += 1;
             usingCPU = contextSwitchingIn;
-            printf("time %dms: Process %c started using the CPU for %dms burst ", clock,
-                   usingCPU->name, usingCPU->CPUBursts[0]);
-            printQueue(readyQ);
+            if (clock <= totalPrint) {
+                printf("time %dms: Process %c started using the CPU for %dms burst ", clock,
+                       usingCPU->name, usingCPU->CPUBursts[0]);
+                printQueue(readyQ);
+            }
+
 
             // cpu utilization calculation
             CPU_utilization += (clock - usingCPU->CPUBursts[0]);
@@ -86,8 +83,6 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
 
             updateOnCPUEntry(usingCPU, clock, t_cs);
             // release the CPU after contextSwitch
-            releaseCPU = clock + usingCPU->time_for_next_interesting_event;
-            contextSwitch = false;
             contextSwitchingIn = NULL;
 
         }
@@ -97,23 +92,27 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
             if(usingCPU->time_for_next_interesting_event == clock) {
                 // check if any CPU Burst left
                 if (usingCPU->CPUBursts.size() > 0) {
-                    if (usingCPU->CPUBursts.size() == 1) {
-                        printf("time %dms: Process %c completed a CPU burst; %lu burst to go ", clock,
-                               usingCPU->name, usingCPU->CPUBursts.size());
-                    } else {
-                        printf("time %dms: Process %c completed a CPU burst; %lu bursts to go ", clock,
-                               usingCPU->name, usingCPU->CPUBursts.size());
+                    if (clock <= totalPrint) {
+                        if (usingCPU->CPUBursts.size() == 1) {
+                            printf("time %dms: Process %c completed a CPU burst; %lu burst to go ", clock,
+                                   usingCPU->name, usingCPU->CPUBursts.size());
+                        } else {
+                            printf("time %dms: Process %c completed a CPU burst; %lu bursts to go ", clock,
+                                   usingCPU->name, usingCPU->CPUBursts.size());
+                        }
+                        printQueue(readyQ);
                     }
-                    printQueue(readyQ);
 
                     // CONTEXT SWITCH OUT OF CPU
-                    contextSwitch = true;
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Waiting";
                     updateOnSwitchOutOfCPU(contextSwitchingOut, clock, t_cs);
-                    printf("time %dms: Process %c switching out of CPU; will block on I/O until time %dms ", clock, usingCPU->name,
-                           usingCPU->time_for_next_interesting_event);
-                    printQueue(readyQ);
+                    if (clock <= totalPrint) {
+                        printf("time %dms: Process %c switching out of CPU; will block on I/O until time %dms ", clock, usingCPU->name,
+                               usingCPU->time_for_next_interesting_event);
+                        printQueue(readyQ);
+                    }
+
                     contextSwitchUntil = clock + (t_cs / 2);
 
                     // add to turn around time
@@ -126,7 +125,6 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
 
                     // Release CPU
                     CPUActive = false;
-                    releaseCPU = clock;
                 }
                 else {
                     // the process terminates
@@ -135,7 +133,6 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
                     completedProcess += 1;
 
                     // CONTEXT SWITCH
-                    contextSwitch = true;
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Terminated";
                     contextSwitchUntil = clock + (t_cs / 2);
@@ -146,7 +143,6 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
 
                     // Release CPU
                     CPUActive = false;
-                    releaseCPU = clock;
                 }
             }
         }
@@ -165,8 +161,11 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
                 temp2->status = "Ready";
                 // Push to readyQ and sort
                 readyQ.push_back(temp2);
-                printf("time %dms: Process %c completed I/O; added to ready queue ", clock, temp2->name);
-                printQueue(readyQ);
+                if (clock <= totalPrint) {
+                    printf("time %dms: Process %c completed I/O; added to ready queue ", clock, temp2->name);
+                    printQueue(readyQ);
+                }
+
             }
             // delete from waiting map
             waitingMap.erase(it);
@@ -180,9 +179,12 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
                 arrivedProcesses[i]->arrived_readyQ = clock;
                 arrivedProcesses[i]->in_rq = true;
                 readyQ.push_back(arrivedProcesses[i]);
-                printf("time %dms: Process %c arrived; added to ready queue ", clock,
-                       arrivedProcesses[i]->name);
-                printQueue(readyQ);
+                if (clock <= totalPrint) {
+                    printf("time %dms: Process %c arrived; added to ready queue ", clock,
+                           arrivedProcesses[i]->name);
+                    printQueue(readyQ);
+                }
+
             }
         }
 
@@ -197,7 +199,6 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
         // if readyQ is not empty, CPU is not active, and if no process is contextSwitching
         if (readyQ.size() > 0  && !CPUActive && contextSwitchUntil <= clock) {
             contextSwitchingIn = readyQ.at(0);
-            contextSwitch = true;
             contextSwitchUntil = clock + (t_cs/2);
             // remove from readyQ
             readyQ.erase(readyQ.begin());
@@ -207,18 +208,15 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
 
         clock++;
     }
-    cout.precision(3);
-
-//    cout << std::fixed << std::setprecision(3) << "Average CPU Burst Time " << average_CPUBurst_time << endl;
-//    cout << std::fixed << std::setprecision(4) << "Average Wait Time " << average_wait_time/totalWait << endl;
-//    printf("Average Turn Around Time %.4f\n", average_turnaround_time/double(totalTurnAround));
-//    cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
-//    printf("Total preemptions %d\n", total_preemptions);
-
-    printf("Average CPU Burst Time %.3f\n", average_CPUBurst_time);
-    printf("Average Wait Time %.3f\n", average_wait_time/double(totalCPUBurst));
-    printf("Average Turn Around Time %.3f\n", average_turnaround_time/double(totalCPUBurst));
-    cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
-    printf("Total preemptions %d\n", total_preemptions);
+    FILE *fp;
+    fp = fopen("simout.txt","w");
+    fprintf(fp, "Algorithm FCFS\n");
+    fprintf(fp, "-- average CPU burst time: %.3fms\n", ceil(average_CPUBurst_time/ double(totalCPUBurst) * 1000)/1000);
+    fprintf(fp, "-- average wait time: %.3fms\n", ceil(average_wait_time/double(totalCPUBurst) * 1000) / 1000);
+    fprintf(fp, "-- average turnaround time: %.3fms\n", ceil(average_turnaround_time/double(totalCPUBurst) * 1000)/ 1000);
+    fprintf(fp, "-- total number of context switches: %d\n", contextSwitchCount);
+    fprintf(fp, "-- total number of preemptions: %d\n", total_preemptions);
+    fprintf(fp, "-- CPU utilization: %.3f%%\n", ceil(average_CPUBurst_time * 100.00 / double(clock) * 1000) / 1000);
+    fclose(fp);
 }
 

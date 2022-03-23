@@ -26,41 +26,5 @@ class Process {
         /* will pop CPU and I/O bursts that have finished */
         deque<int> CPUBursts;
         deque<int> IOBursts;
-
-        void printProcess() const {
-            cout << "t_arrival " << t_arrival << endl;
-            cout << "name " << name << endl;
-            cout << "tau " << tau << endl;
-            cout << "status " << status << endl;
-            if (CPUBursts.size() > 0) {
-                cout << "CPUBurst[0] " << CPUBursts[0] << endl;
-            }
-            cout << endl;
-        }
-
-        void copy(const Process* p) {
-            name = p->name;
-            num_bursts = p->num_bursts;
-            t_arrival = p->t_arrival;
-            tau = p->tau;
-            tau_remaining = p->tau_remaining;
-            wait_time = p->wait_time;
-            turnaround_time = p->turnaround_time;
-            cur_CPUBurst = p->cur_CPUBurst;
-            cs_time_left = p->cs_time_left;
-            in_rq = p->in_rq;
-            time_for_next_interesting_event = p->time_for_next_interesting_event;
-            arrived_readyQ = p->arrived_readyQ;
-            status = p->status;
-            preempted = p->preempted;
-
-            for (int i = 0; i < p->CPUBursts.size(); i++) {
-                CPUBursts.push_back(p->CPUBursts[i]);
-            }
-            for (int i = 0; i < p->IOBursts.size(); i++) {
-                IOBursts.push_back(p->IOBursts[i]);
-            }
-        }
-
-
+        
 };

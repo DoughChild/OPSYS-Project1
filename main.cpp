@@ -50,6 +50,7 @@
 #include "FCFS.h"
 #include "RR.h"
 
+
 using namespace std;
 
 double next_exp(double lambda, long upper_bound)
@@ -147,7 +148,7 @@ int main(int argc, char *argv[])
     /* Loops through each algorithm:
      * 1 = FCFS, 2 = SJF, 3 = SRT, 4 = RR
      */
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 3; i++)
     {
         // initialize the seed for each algorithm, we want the same set of processes
         srand48(seed);
@@ -165,12 +166,18 @@ int main(int argc, char *argv[])
             gen_process_info(lambda, upper_bound, p);
         }
 
-        //printf("length of CPU bursts: %lu, length of I/O bursts: %lu\n", processes[1]->CPUBursts.size(), processes[1]->IOBursts.size());
-//        FCFS(processes, tau, t_cs, alpha);
-//        cout << "" << endl;
-//        SJF(processes, tau, t_cs, alpha);
-        RR(processes, tau, t_cs, alpha, t_slice);
-
+        printf("length of CPU bursts: %lu, length of I/O bursts: %lu\n", processes[1]->CPUBursts.size(), processes[1]->IOBursts.size());
+        if (i == 0) {
+            FCFS(processes, t_cs, alpha);
+            cout << "" << endl;
+        }
+        else if (i == 1) {
+            SJF(processes, tau, t_cs, alpha);
+            cout << "" << endl;
+        }
+        else {
+            RR(processes, tau, t_cs, alpha, t_slice);
+        }
 
     }
 
