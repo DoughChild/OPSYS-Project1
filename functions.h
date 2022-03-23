@@ -49,7 +49,6 @@ public:
 };
 
 
-
 vector<Process *> processArrived(vector<Process*> processes, int t) {
     vector <Process*> arrivedProcesses;
     for (unsigned long i = 0; i < processes.size(); i++) {
@@ -103,3 +102,5 @@ double calculateAverageCPUBurst(Process * p) {
     return total;
 }
 #endif //CPUSCHEDULING_FUNCTIONS_H
+
+

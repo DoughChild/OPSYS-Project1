@@ -25,7 +25,7 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
     double average_CPUBurst_time = 0.0;
     double average_wait_time = 0.0;
     double average_turnaround_time = 0.0;
-    int total_preemptions = 0;
+    //int total_preemptions = 0;
     double CPU_utilization = 0.0;
     int totalCPUBurst = 0;
     int totalWait = 0;
@@ -35,8 +35,11 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
     map<int, vector<Process*> > waitingMap;
     // key is the IO bust end time i-e time for next interesting event
     vector<Process*> processesVector;
-    for (int i = 0; i < processes.size(); i++) {
-        processesVector.push_back(processes[i]);
+
+    for (unsigned long i = 0; i < processes.size(); i++) {
+        Process *p = new Process();
+        p->copy(processes[i]);
+        processesVector.push_back(p);
         totalCPUBurst += processes[i]->CPUBursts.size();
         average_CPUBurst_time += calculateAverageCPUBurst(processes[i]);
     }
@@ -53,7 +56,6 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
     // if CPU is in use
     bool CPUActive = false;
 
-    // context switch counts
     Process* contextSwitchingIn = NULL; // process which is currently context switching in the CPU
     Process* contextSwitchingOut = NULL; // process which is currently context switching out the CPU
     int contextSwitchUntil = -99999999; // until which time a process is context switching in or out
@@ -83,6 +85,7 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
 
             updateOnCPUEntry(usingCPU, clock, t_cs);
             // release the CPU after contextSwitch
+
             contextSwitchingIn = NULL;
 
         }
@@ -104,6 +107,7 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
                     }
 
                     // CONTEXT SWITCH OUT OF CPU
+
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Waiting";
                     updateOnSwitchOutOfCPU(contextSwitchingOut, clock, t_cs);
@@ -125,6 +129,7 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
 
                     // Release CPU
                     CPUActive = false;
+
                 }
                 else {
                     // the process terminates
@@ -133,6 +138,7 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
                     completedProcess += 1;
 
                     // CONTEXT SWITCH
+
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Terminated";
                     contextSwitchUntil = clock + (t_cs / 2);
@@ -143,6 +149,7 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
 
                     // Release CPU
                     CPUActive = false;
+
                 }
             }
         }
@@ -152,7 +159,7 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
         it = waitingMap.find(clock);
         if(it != waitingMap.end()) {
             // finish IO for the processes in the list and erase the processes from waitingMap
-            for (int i = 0; i < it->second.size(); i++)  {
+            for (unsigned long i = 0; i < it->second.size(); i++)  {
                 // finished IO
                 // re-enter the readyQ
                 Process * temp2 = it->second[i];
@@ -175,7 +182,7 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
         vector<Process*> arrivedProcesses;
         arrivedProcesses = processArrived(processesVector, clock);
         if (arrivedProcesses.size() > 0) {
-            for (int i = 0; i < arrivedProcesses.size(); i++) {
+            for (unsigned long i = 0; i < arrivedProcesses.size(); i++) {
                 arrivedProcesses[i]->arrived_readyQ = clock;
                 arrivedProcesses[i]->in_rq = true;
                 readyQ.push_back(arrivedProcesses[i]);
@@ -199,6 +206,7 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
         // if readyQ is not empty, CPU is not active, and if no process is contextSwitching
         if (readyQ.size() > 0  && !CPUActive && contextSwitchUntil <= clock) {
             contextSwitchingIn = readyQ.at(0);
+
             contextSwitchUntil = clock + (t_cs/2);
             // remove from readyQ
             readyQ.erase(readyQ.begin());
@@ -218,5 +226,6 @@ void FCFS(deque<Process*> processes, int t_cs, double alpha) {
     fprintf(fp, "-- total number of preemptions: %d\n", total_preemptions);
     fprintf(fp, "-- CPU utilization: %.3f%%\n", ceil(average_CPUBurst_time * 100.00 / double(clock) * 1000) / 1000);
     fclose(fp);
+
 }
 

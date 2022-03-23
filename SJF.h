@@ -6,7 +6,11 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <algorithm>
+#include <vector>
+
 #include "functions.h"
+
 using namespace std;
 
 void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
@@ -51,8 +55,6 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
     Process* usingCPU = NULL;
     // if CPU is in use
     bool CPUActive = false;
-
-    // context switch counts
     Process* contextSwitchingIn = NULL; // process which is currently context switching in the CPU
     Process* contextSwitchingOut = NULL; // process which is currently context switching out the CPU
     int contextSwitchUntil = -99999999; // until which time a process is context switching in or out
@@ -155,7 +157,7 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
         it = waitingMap.find(clock);
         if(it != waitingMap.end()) {
             // finish IO for the processes in the list and erase the processes from waitingMap
-            for (int i = 0; i < it->second.size(); i++)  {
+            for (unsigned long i = 0; i < it->second.size(); i++)  {
                 // finished IO
                 // re-enter the readyQ
                 Process * temp2 = it->second[i];
@@ -180,7 +182,7 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
         vector<Process*> arrivedProcesses;
         arrivedProcesses = processArrived(processesVector, clock);
         if (arrivedProcesses.size() > 0) {
-            for (int i = 0; i < arrivedProcesses.size(); i++) {
+            for (unsigned long i = 0; i < arrivedProcesses.size(); i++) {
                 arrivedProcesses[i]->arrived_readyQ = clock;
                 arrivedProcesses[i]->in_rq = true;
                 readyQ.push_back(arrivedProcesses[i]);

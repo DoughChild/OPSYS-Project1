@@ -15,6 +15,11 @@ class Process {
         int turnaround_time;
         int cur_CPUBurst;
         int cs_time_left;
+        // r for ready queue, i for I/O, c for CPU
+        char dest;
+        bool in_cs;
+        bool out_cs;
+
         int arrived_readyQ;
         int time_for_next_interesting_event;
         string status;
@@ -22,9 +27,8 @@ class Process {
         //bool in_rq;
         bool in_rq;
         bool preempted;
-
+        bool will_preempt;
         /* will pop CPU and I/O bursts that have finished */
         deque<int> CPUBursts;
         deque<int> IOBursts;
-        
 };

@@ -48,14 +48,8 @@
 #include <queue>
 
 #include "Process.h"
-//#include "tau_calc.h"
-//#include "functions.h"
-#include "SRT.h"
-#include "SJF.h"
-#include "RR1.h"
-#include "FCFS.h"
-
-#define DISPLAY_MAX_T true
+//#include "SRT.h"
+//#include "RR1.h"
 
 using namespace std;
 
@@ -135,7 +129,7 @@ int main(int argc, char *argv[])
     }
 
     int num_processes, t_cs, t_slice;
-    double alpha, lambda;
+    double /*alpha,*/ lambda;
     char *ptr;
     long seed, upper_bound;
 
@@ -144,9 +138,10 @@ int main(int argc, char *argv[])
     lambda = atof(argv[3]);
     upper_bound = strtoul(argv[4], &ptr, 10);
     t_cs = atoi(argv[5]);
-    alpha = atof(argv[6]);
+    /*alpha = atof(argv[6]);*/
     t_slice = atoi(argv[7]);
-    double tau = 1 / lambda;
+    int tau;
+    tau = (int)ceil(tau = 1 / lambda);
 
     // // test print
     // printf("7 arguments are:\n");
@@ -156,7 +151,7 @@ int main(int argc, char *argv[])
     /* Loops through each algorithm:
      * 1 = FCFS, 2 = SJF, 3 = SRT, 4 = RR
      */
-    for (int i = 1; i < 5; i++)
+    for (int i = 0; i < 1; i++)
     {
         // initialize the seed for each algorithm, we want the same set of processes
         srand48(seed);
@@ -176,29 +171,10 @@ int main(int argc, char *argv[])
 
         //printf("length of CPU bursts: %lu, length of I/O bursts: %lu\n", processes[1]->CPUBursts.size(), processes[1]->IOBursts.size());
         //SRT(processes, tau, t_cs, alpha);
-        // SJF(processes, tau, t_cs, alpha);
-        // cout << "SRT ran, holy crap!\n";
-        switch (i) {
-            case 1:
-                FCFS(processes, tau, t_cs, alpha);
-                cout << endl;
-                //cout << "FCFS ran, holy crap!\n";
-                break;
-            case 2:
-                SJF(processes, tau, t_cs, alpha);
-                cout << endl;
-                //cout << "SJF ran, holy crap!\n";
-                break;
-            case 3:
-                SRT(processes, tau, t_cs, alpha);
-                cout << endl;
-                //cout << "SRT ran, holy crap!\n";
-                break;
-            case 4:
-                RR1(processes, t_cs, t_slice);
-                //cout << "RR ran, holy crap!\n";
-                break;
-        }
+        RR1(processes, t_cs, t_slice);
+
+
+
 
 
 

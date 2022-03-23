@@ -62,7 +62,6 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
     bool CPUActive = false;
     // clock time when a CPU is released and starts context switching for next process
 
-    // context switch counts
     Process* contextSwitchingIn = NULL; // process which is currently context switching in the CPU
     Process* contextSwitchingOut = NULL; // process which is currently context switching out the CPU
     int contextSwitchUntil = -99999999; // until which time a process is context switching in or out
@@ -105,6 +104,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
 
                 contextSwitchingOut = preempt;
 
+
                 total_preemptions += 1;
                 contextSwitchingOut->time_for_next_interesting_event = clock + (t_cs / 2);
                 contextSwitchUntil = clock + (t_cs / 2);
@@ -112,6 +112,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
 
                 // release CPU
                 CPUActive = false;
+
                 usingCPU = NULL;
             }
 
@@ -164,6 +165,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
 
 //            updateOnCPUEntry(usingCPU, clock, t_cs);
             // release the CPU after contextSwitch
+
             contextSwitchingIn = NULL;
 
         }
@@ -186,6 +188,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
 
 
                     // CONTEXT SWITCH OUT OF CPU
+
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Waiting";
                     updateOnSwitchOutOfCPU(contextSwitchingOut, clock, t_cs);
@@ -207,6 +210,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
 
                     // Release CPU
                     CPUActive = false;
+
                 }
                 else {
                     // the process terminates
@@ -215,6 +219,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
                     completedProcess += 1;
 
                     // CONTEXT SWITCH
+
                     contextSwitchingOut = usingCPU;
                     contextSwitchingOut->status = "Terminated";
                     contextSwitchUntil = clock + (t_cs / 2);
@@ -225,6 +230,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
 
                     // Release CPU
                     CPUActive = false;
+
                 }
             }
         }
@@ -234,7 +240,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
         it = waitingMap.find(clock);
         if(it != waitingMap.end()) {
             // finish IO for the processes in the list and erase the processes from waitingMap
-            for (int i = 0; i < it->second.size(); i++)  {
+            for (unsigned long i = 0; i < it->second.size(); i++)  {
                 // finished IO
                 // re-enter the readyQ
                 Process * temp2 = it->second[i];
@@ -262,7 +268,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
         vector<Process*> arrivedProcesses;
         arrivedProcesses = processArrived(processesVector, clock);
         if (arrivedProcesses.size() > 0) {
-            for (int i = 0; i < arrivedProcesses.size(); i++) {
+            for (unsigned long i = 0; i < arrivedProcesses.size(); i++) {
                 arrivedProcesses[i]->arrived_readyQ = clock;
                 arrivalTimeMap[arrivedProcesses[i]->name] = clock;
                 arrivedProcesses[i]->in_rq = true;
@@ -295,6 +301,7 @@ void RR(deque<Process*> processes, double tau, int t_cs, double alpha, int t_sli
         // if readyQ is not empty, CPU is not active, and if no process is contextSwitching
         if (readyQ.size() > 0  && !CPUActive && contextSwitchUntil <= clock && !addPreemptedProcessToReadyQ) {
             contextSwitchingIn = readyQ.at(0);
+
             contextSwitchUntil = clock + (t_cs/2);
             // remove from readyQ
             readyQ.erase(readyQ.begin());
