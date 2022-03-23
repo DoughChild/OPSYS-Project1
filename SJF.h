@@ -6,7 +6,11 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <algorithm>
+#include <vector>
+
 #include "functions.h"
+
 using namespace std;
 
 void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {

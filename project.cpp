@@ -47,8 +47,12 @@
 #include <iostream>
 #include <queue>
 
-//#include "Process.h"
+#include "Process.h"
 #include "SRT.h"
+#include "SJF.h"
+#include "RR.h"
+#include "FCFS.h"
+
 
 using namespace std;
 
@@ -105,6 +109,8 @@ void gen_process_info(double lambda, long upper_bound, Process * p)
     p->turnaround_time = 0;
     p->cur_CPUBurst = p->CPUBursts[0];
     p->in_rq = false;
+    p->preempted = false;
+    p->cs_time_left = 0;
 }
 
 
@@ -125,7 +131,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    int num_processes, t_cs;//, t_slice;
+    int num_processes, t_cs, t_slice;
     double alpha, lambda;
     char *ptr;
     long seed, upper_bound;
@@ -136,7 +142,7 @@ int main(int argc, char *argv[])
     upper_bound = strtoul(argv[4], &ptr, 10);
     t_cs = atoi(argv[5]);
     alpha = atof(argv[6]);
-    //t_slice = atoi(argv[7]);
+    t_slice = atoi(argv[7]);
     double tau = 1 / lambda;
 
     // // test print
@@ -147,7 +153,7 @@ int main(int argc, char *argv[])
     /* Loops through each algorithm:
      * 1 = FCFS, 2 = SJF, 3 = SRT, 4 = RR
      */
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 4; i++)
     {
         // initialize the seed for each algorithm, we want the same set of processes
         srand48(seed);
@@ -166,10 +172,23 @@ int main(int argc, char *argv[])
         }
 
         //printf("length of CPU bursts: %lu, length of I/O bursts: %lu\n", processes[1]->CPUBursts.size(), processes[1]->IOBursts.size());
-        SRT(processes, tau, t_cs, alpha);
-        cout << "SRT ran, holy crap!\n";
-
-
+        //SRT(processes, tau, t_cs, alpha);
+        // SJF(processes, tau, t_cs, alpha);
+        // cout << "SRT ran, holy crap!\n";
+        switch (i) {
+            case 1:
+                FCFS(processes, tau, t_cs, alpha);
+                cout << "FCFS ran, holy crap!\n";
+            case 2:
+                SJF(processes, tau, t_cs, alpha);
+                cout << "SJF ran, holy crap!\n";
+            case 3:
+                SRT(processes, tau, t_cs, alpha);
+                cout << "SRT ran, holy crap!\n";
+            case 4:
+                RR(processes, tau, t_cs, alpha, t_slice);
+                cout << "RR ran, holy crap!\n";
+        }
 
 
 
