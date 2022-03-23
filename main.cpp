@@ -45,10 +45,10 @@
 #include <ctype.h>
 #include <iostream>
 #include <queue>
-
 #include "process.h"
 #include "SJF.h"
 #include "FCFS.h"
+#include "RR.h"
 
 using namespace std;
 
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    int num_processes, t_cs;//, t_slice;
+    int num_processes, t_cs, t_slice;
     double alpha, lambda;
     char *ptr;
     long seed, upper_bound;
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
     upper_bound = strtoul(argv[4], &ptr, 10);
     t_cs = atoi(argv[5]);
     alpha = atof(argv[6]);
-    //t_slice = atoi(argv[7]);
+    t_slice = atoi(argv[7]);
     double tau = 1 / lambda;
 
     // // test print
@@ -166,9 +166,10 @@ int main(int argc, char *argv[])
         }
 
         //printf("length of CPU bursts: %lu, length of I/O bursts: %lu\n", processes[1]->CPUBursts.size(), processes[1]->IOBursts.size());
-        FCFS(processes, tau, t_cs, alpha);
-        cout << "" << endl;
-        SJF(processes, tau, t_cs, alpha);
+//        FCFS(processes, tau, t_cs, alpha);
+//        cout << "" << endl;
+//        SJF(processes, tau, t_cs, alpha);
+        RR(processes, tau, t_cs, alpha, t_slice);
 
 
     }

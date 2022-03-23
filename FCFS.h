@@ -216,8 +216,8 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
 //    printf("Total preemptions %d\n", total_preemptions);
 
     printf("Average CPU Burst Time %.3f\n", average_CPUBurst_time);
-    printf("Average Wait Time %.3f\n", average_wait_time/double(totalWait));
-    printf("Average Turn Around Time %.3f\n", average_turnaround_time/double(totalTurnAround));
+    printf("Average Wait Time %.3f\n", average_wait_time/double(totalCPUBurst));
+    printf("Average Turn Around Time %.3f\n", average_turnaround_time/double(totalCPUBurst));
     cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
     printf("Total preemptions %d\n", total_preemptions);
 }

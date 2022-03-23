@@ -21,6 +21,7 @@ class Process {
 
         //bool in_rq;
         bool in_rq;
+        bool preempted;
 
         /* will pop CPU and I/O bursts that have finished */
         deque<int> CPUBursts;
@@ -51,6 +52,8 @@ class Process {
             time_for_next_interesting_event = p->time_for_next_interesting_event;
             arrived_readyQ = p->arrived_readyQ;
             status = p->status;
+            preempted = p->preempted;
+
             for (int i = 0; i < p->CPUBursts.size(); i++) {
                 CPUBursts.push_back(p->CPUBursts[i]);
             }

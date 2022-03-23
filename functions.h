@@ -83,6 +83,7 @@ void updateOnCPUEntry(Process *p, int t, int t_cs) {
     double waittime = t - p->arrived_readyQ - double(t_cs / 2.0);
     p->wait_time += waittime;
     p->cur_CPUBurst = p->CPUBursts[0];
+    p->cs_time_left = p->cur_CPUBurst;
     p->CPUBursts.erase(p->CPUBursts.begin());
     p->time_for_next_interesting_event = t + p->cur_CPUBurst;
     // cout << "UPDATE on CPU BURST " << p->time_for_next_interesting_event << endl;
@@ -99,5 +100,14 @@ int calc_tau(double prev_tau, int actual, double alpha)
 
     double new_tau = ceil((alpha * actual) + ((1.0 - alpha) * prev_tau));
     return (int)new_tau;
+}
+
+double calculateAverageCPUBurst(Process * p) {
+    double total = 0.0;
+    for(int i = 0; i < p->CPUBursts.size(); i++) {
+        total += double(p->CPUBursts[i]);
+    }
+    //cout << total/p->num_bursts << endl;
+    return total;
 }
 #endif //CPUSCHEDULING_FUNCTIONS_H
