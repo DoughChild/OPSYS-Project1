@@ -25,7 +25,7 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
     double average_CPUBurst_time = 0.0;
     double average_wait_time = 0.0;
     double average_turnaround_time = 0.0;
-    int total_preemptions = 0;
+    //int total_preemptions = 0;
     double CPU_utilization = 0.0;
     int totalCPUBurst = 0;
     int totalWait = 0;
@@ -215,10 +215,22 @@ void FCFS(deque<Process*> processes, double tau, int t_cs, double alpha) {
 //    cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
 //    printf("Total preemptions %d\n", total_preemptions);
 
-    printf("Average CPU Burst Time %.3f\n", average_CPUBurst_time);
-    printf("Average Wait Time %.3f\n", average_wait_time/double(totalCPUBurst));
-    printf("Average Turn Around Time %.3f\n", average_turnaround_time/double(totalCPUBurst));
-    cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
-    printf("Total preemptions %d\n", total_preemptions);
+    // printf("Average CPU Burst Time %.3f\n", average_CPUBurst_time);
+    // printf("Average Wait Time %.3f\n", average_wait_time/double(totalCPUBurst));
+    // printf("Average Turn Around Time %.3f\n", average_turnaround_time/double(totalCPUBurst));
+    // cout << "TOTAL CONTEXT SWITCH " << contextSwitchCount << endl;
+    // printf("Total preemptions %d\n", total_preemptions);
+
+    ofstream file;
+    file.open("simout.txt", std::fstream::trunc | std::fstream::out);
+    file << "Algorithm FCFS\n";
+    // file << "-- average CPU burst time: " << avg_burst << " ms\n";
+    // file << "-- average wait time: " << avg_wait << " ms\n";
+    // file << "-- average turnaround time: " << avg_turnaround << " ms\n";
+    // file << "-- total number of context switches: " << cs_count << "\n";
+    // file << "-- total number preemptions: " << preempt_count << "\n";
+    // file << "-- CPU utilization: " << CPU_util << "%\n";
+    file.close();
+
 }
 

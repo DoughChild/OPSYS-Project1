@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
     /* Loops through each algorithm:
      * 1 = FCFS, 2 = SJF, 3 = SRT, 4 = RR
      */
-    for (int i = 0; i < 4; i++)
+    for (int i = 1; i < 5; i++)
     {
         // initialize the seed for each algorithm, we want the same set of processes
         srand48(seed);
@@ -181,19 +181,24 @@ int main(int argc, char *argv[])
         switch (i) {
             case 1:
                 FCFS(processes, tau, t_cs, alpha);
-                cout << "FCFS ran, holy crap!\n";
+                cout << endl;
+                //cout << "FCFS ran, holy crap!\n";
+                break;
             case 2:
                 SJF(processes, tau, t_cs, alpha);
-                cout << "SJF ran, holy crap!\n";
+                cout << endl;
+                //cout << "SJF ran, holy crap!\n";
+                break;
             case 3:
                 SRT(processes, tau, t_cs, alpha);
-                cout << "SRT ran, holy crap!\n";
+                cout << endl;
+                //cout << "SRT ran, holy crap!\n";
+                break;
             case 4:
                 RR1(processes, t_cs, t_slice);
-                cout << "RR ran, holy crap!\n";
+                //cout << "RR ran, holy crap!\n";
+                break;
         }
-
-
 
 
 

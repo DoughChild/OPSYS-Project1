@@ -43,11 +43,14 @@ void printQu (deque<Process*> rq) {
 }
 
 
-void RR1(deque<Process *> processes, int t_cs, int t_slice)
+void RR1(deque<Process *> processesList, int t_cs, int t_slice)
 {
-    /* before popping values from processes in the list, measure
-     * CPU utilization from unaltered list. This will prevent us
-     * from having to use additional variables etc */
+    deque<Process *> processes;
+    for (unsigned long i = 0; i < processesList.size(); i++) {
+        Process *p = new Process();
+        p->copy(processesList[i]);
+        processes.push_back(p);
+    }
 
     // need these values to calculate averages
     //int num_processes = (int)processes.size();

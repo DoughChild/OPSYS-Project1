@@ -45,11 +45,14 @@ void printQ (deque<Process*> rq) {
 
 
 
-void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
+void SRT(deque<Process *> processesList, int tau, int t_cs, double alpha)
 {
-    /* before popping values from processes in the list, measure
-     * CPU utilization from unaltered list. This will prevent us
-     * from having to use additional variables etc */
+    deque<Process *> processes;
+    for (unsigned long i = 0; i < processesList.size(); i++) {
+        Process *p = new Process();
+        p->copy(processesList[i]);
+        processes.push_back(p);
+    }
 
     // need these values to calculate averages
     //int num_processes = (int)processes.size();
