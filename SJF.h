@@ -214,7 +214,6 @@ void SJF(deque<Process*> processes, double tau, int t_cs, double alpha) {
 
         clock++;
     }
-    cout.precision(3);
 
     // printf("Average CPU Burst Time %.3f\n", average_CPUBurst_time);
     // printf("Average Wait Time %.4f\n", average_wait_time/double(totalWait));

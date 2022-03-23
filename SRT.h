@@ -45,14 +45,14 @@ void printQ (deque<Process*> rq) {
 
 
 
-void SRT(deque<Process *> processesList, int tau, int t_cs, double alpha)
+void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
 {
-    deque<Process *> processes;
-    for (unsigned long i = 0; i < processesList.size(); i++) {
-        Process *p = new Process();
-        p->copy(processesList[i]);
-        processes.push_back(p);
-    }
+    // deque<Process *> processes;
+    // for (unsigned long i = 0; i < processesList.size(); i++) {
+    //     Process *p = new Process();
+    //     p->copy(processesList[i]);
+    //     processes.push_back(p);
+    // }
 
     // need these values to calculate averages
     //int num_processes = (int)processes.size();
@@ -350,23 +350,16 @@ void SRT(deque<Process *> processesList, int tau, int t_cs, double alpha)
     avg_wait = ceil(((double)sum_wait / (double)num_CPU_bursts) * 1000) / 1000;
     avg_turnaround = ceil(((double)sum_turnaround / (double)num_CPU_bursts) * 1000) / 1000;
     CPU_util = ceil(((double)sum_burst_time / (double)time_cur) * 100000) / 1000;
-    // printf("Average CPU burst time: %.3f ms\n", avg_burst);
-    // printf("Average wait time: %.3f ms\n", avg_wait);
-    // printf("Average turnaround time: %.3f ms\n", avg_turnaround);
-    // printf("number of total CPU bursts: %d\n", num_CPU_bursts);
-    // printf("Total number of context switches: %d\n", cs_count);
-    // printf("Total number of preemptions: %d\n", preempt_count);
-    // printf("CPU Utilization: %.3f%%\n", CPU_util);
 
-    ofstream file;
-    file.open("simout.txt", std::fstream::app | std::fstream::out);
-    file << "Algorithm SRT\n";
-    file << "-- average CPU burst time: " << avg_burst << " ms\n";
-    file << "-- average wait time: " << avg_wait << " ms\n";
-    file << "-- average turnaround time: " << avg_turnaround << " ms\n";
-    file << "-- total number of context switches: " << cs_count << "\n";
-    file << "-- total number preemptions: " << preempt_count << "\n";
-    file << "-- CPU utilization: " << CPU_util << "%\n";
-    file.close();
-
+    FILE * file;
+    file = fopen ("simout.txt", "a");
+    fprintf(file, "Algorithm SRT\n");
+    fprintf(file, "-- average CPU burst time: %.3f ms\n", avg_burst);
+    fprintf(file, "-- average wait time: %.3f ms\n", avg_wait);
+    fprintf(file, "-- average turnaround time: %.3f ms\n", avg_turnaround);
+    fprintf(file, "-- total number of context switches: %d\n", cs_count);
+    fprintf(file, "-- total number of preemptions: %d\n", preempt_count);
+    fprintf(file, "-- CPU utilization: %.3f%%\n", CPU_util);
+    fclose( file );
+    
 }
