@@ -340,9 +340,9 @@ void SRT(deque<Process *> processes, int tau, int t_cs, double alpha)
         } else {
             // the most important single line of code
             time_cur++;
-            // if (time_cur >= 1000 && !DISPLAY_MAX_T) {
-            //     printing = false;
-            // }
+            if (time_cur > 1000) {//} && !DISPLAY_MAX_T) {
+                printing = false;
+            }
         }
     }
     // calculating average wait and turnaround times
